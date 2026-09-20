@@ -2,6 +2,17 @@
 .clasprc.json
 *.clasprc.json
 
+# Exportaciones de Google Sheets. Traen nombres de choferes y datos de operacion,
+# que no deben salir de la computadora. Solo se versiona la guia de la carpeta.
+datos/*
+!datos/LEEME.md
+
+# Hojas de calculo descargadas, esten donde esten. Mismo motivo: datos reales
+# de operacion en un repositorio publico.
+*.xlsx
+*.xls
+*.csv
+
 # Dependencias
 node_modules/
 
