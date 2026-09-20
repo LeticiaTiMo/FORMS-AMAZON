@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporte de ruta</title>
+<style>
+  :root {
+    --azul: #14486e;
+    --azul-claro: #1c6ea4;
+    --texto: #16202a;
+    --tenue: #5b6b7a;
+    --borde: #c3ced8;
+    --fondo: #eef2f5;
+    --tarjeta: #ffffff;
+    --error: #b3261e;
+    --error-fondo: #fdecea;
+    --ok: #1b6b3a;
+    --ok-fondo: #e6f4ea;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    font-size: 17px;
+    line-height: 1.45;
+  }
+
+  header {
+    background: var(--azul);
+    color: #fff;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  header h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: .2px; }
+  header p  { margin: 3px 0 0; font-size: 14px; opacity: .85; }
+
+  main { padding: 16px 16px 40px; max-width: 620px; margin: 0 auto; }
+
+  .campo { margin-bottom: 18px; }
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+  label .req { color: var(--error); margin-left: 2px; }
+
+  input, select {
+    width: 100%;
+    padding: 14px 12px;
+    font-size: 17px;
+    font-family: inherit;
+    color: var(--texto);
+    background: var(--tarjeta);
+    border: 1.5px solid var(--borde);
+    border-radius: 10px;
+    appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%235b6b7a' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--azul-claro);
+    box-shadow: 0 0 0 3px rgba(28, 110, 164, .18);
+  }
+  input.malo, select.malo { border-color: var(--error); background: var(--error-fondo); }
+
+  .pista { font-size: 13.5px; color: var(--tenue); margin-top: 5px; }
+  .malo-texto { font-size: 14px; color: var(--error); margin-top: 5px; font-weight: 600; }
+
+  .grupo-horas {
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 14px 14px 2px;
+    margin-bottom: 18px;
+  }
+  .grupo-horas h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--tenue);
+  }
+
+  button {
+    width: 100%;
+    padding: 17px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #fff;
+    background: var(--azul);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  button:disabled { background: #8b9aa7; cursor: default; }
+
+  .aviso {
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    font-weight: 600;
+  }
+  .aviso.error { background: var(--error-fondo); color: var(--error); }
+  .aviso.error ul { margin: 8px 0 0; padding-left: 20px; font-weight: 500; }
+
+  .pantalla-ok { text-align: center; padding: 48px 20px; }
+  .pantalla-ok .marca {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: var(--ok-fondo); color: var(--ok);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin: 0 auto 18px;
+  }
+  .pantalla-ok h2 { margin: 0 0 8px; font-size: 21px; }
+  .pantalla-ok p  { margin: 0 0 26px; color: var(--tenue); }
+
+  .cargando { text-align: center; padding: 60px 20px; color: var(--tenue); }
+
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reporte de ruta</h1>
+  <p>BDB Logística &middot; Envío inicial</p>
+</header>
+
+<main>
+  <div id="cargando" class="cargando">Cargando catálogos&hellip;</div>
+
+  <div id="pantallaOk" class="pantalla-ok oculto">
+    <div class="marca">&check;</div>
+    <h2>Reporte enviado</h2>
+    <p id="textoOk"></p>
+    <button type="button" onclick="location.reload()">Enviar otro reporte</button>
+  </div>
+
+  <form id="forma" class="oculto" novalidate>
+    <div id="avisoError" class="aviso error oculto"></div>
+
+    <div class="campo">
+      <label for="CEDIS">CEDIS <span class="req">*</span></label>
+      <select id="CEDIS" name="CEDIS"></select>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="DRIVER">Driver <span class="req">*</span></label>
+      <select id="DRIVER" name="DRIVER"></select>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="TIENE_AUXILIAR">La ruta tiene auxiliar <span class="req">*</span></label>
+      <select id="TIENE_AUXILIAR" name="TIENE_AUXILIAR">
+        <option value="">Selecciona…</option>
+        <option value="NO">NO</option>
+        <option value="Sí">Sí</option>
+      </select>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo oculto" id="campoAuxiliar">
+      <label for="NOMBRE_AUXILIAR">Nombre del auxiliar <span class="req">*</span></label>
+      <select id="NOMBRE_AUXILIAR" name="NOMBRE_AUXILIAR"></select>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="PLACAS">Placas <span class="req">*</span></label>
+      <select id="PLACAS" name="PLACAS"></select>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="grupo-horas">
+      <h2>Horas</h2>
+      <div class="campo">
+        <label for="HR_LLEGADA_BO">Hora de llegada a BO <span class="req">*</span></label>
+        <input type="time" id="HR_LLEGADA_BO" name="HR_LLEGADA_BO">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_ENTRADA_BO">Hora de entrada a BO <span class="req">*</span></label>
+        <input type="time" id="HR_ENTRADA_BO" name="HR_ENTRADA_BO">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_SALIDA_BOD">Hora de salida de BOD <span class="req">*</span></label>
+        <input type="time" id="HR_SALIDA_BOD" name="HR_SALIDA_BOD">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_PE">Hora de primera entrega <span class="req">*</span></label>
+        <input type="time" id="HR_PE" name="HR_PE">
+        <div class="malo-texto oculto"></div>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="ZONA_RUTA">Zona de ruta <span class="req">*</span></label>
+      <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" list="listaZonas" autocomplete="off" enterkeyhint="next">
+      <datalist id="listaZonas"></datalist>
+      <div class="pista">Escribe la zona. Las sugerencias son las más usadas.</div>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="ID_RUTA">ID de ruta <span class="req">*</span></label>
+      <input type="text" id="ID_RUTA" name="ID_RUTA" autocomplete="off" autocapitalize="characters">
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="SPR">SPR <span class="req">*</span></label>
+      <input type="number" id="SPR" name="SPR" inputmode="numeric" min="0" step="1">
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="ENTREGADOS">Entregados <span class="req">*</span></label>
+      <input type="number" id="ENTREGADOS" name="ENTREGADOS" inputmode="numeric" min="0" step="1">
+      <div class="pista">No puede ser mayor que el SPR.</div>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="KM_INICIAL">KM inicial <span class="req">*</span></label>
+      <input type="number" id="KM_INICIAL" name="KM_INICIAL" inputmode="numeric" min="0" step="1">
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <button type="submit" id="botonEnviar">Enviar reporte</button>
+  </form>
+</main>
+
+<script>
+  var CLAVES = ['CEDIS','DRIVER','TIENE_AUXILIAR','NOMBRE_AUXILIAR','PLACAS',
+                'HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE',
+                'ZONA_RUTA','ID_RUTA','SPR','ENTREGADOS','KM_INICIAL'];
+
+  var ORDEN_HORAS = ['HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE'];
+  var ETIQUETAS_HORA = {
+    HR_LLEGADA_BO: 'llegada a BO',
+    HR_ENTRADA_BO: 'entrada a BO',
+    HR_SALIDA_BOD: 'salida de BOD',
+    HR_PE: 'primera entrega'
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function llenarSelect(sel, opciones, textoVacio) {
+    sel.innerHTML = '';
+    var vacio = document.createElement('option');
+    vacio.value = '';
+    vacio.textContent = textoVacio;
+    sel.appendChild(vacio);
+    opciones.forEach(function (o) {
+      var op = document.createElement('option');
+      op.value = o;
+      op.textContent = o;
+      sel.appendChild(op);
+    });
+  }
+
+  google.script.run
+    .withSuccessHandler(function (cat) {
+      llenarSelect($('CEDIS'), cat.cedis, 'Selecciona…');
+      llenarSelect($('DRIVER'), cat.drivers, 'Selecciona tu nombre…');
+      llenarSelect($('NOMBRE_AUXILIAR'), cat.drivers, 'Selecciona al auxiliar…');
+      llenarSelect($('PLACAS'), cat.placas, 'Selecciona…');
+
+      var dl = $('listaZonas');
+      cat.zonas.forEach(function (z) {
+        var op = document.createElement('option');
+        op.value = z;
+        dl.appendChild(op);
+      });
+
+      $('cargando').classList.add('oculto');
+      $('forma').classList.remove('oculto');
+    })
+    .withFailureHandler(function (e) {
+      $('cargando').innerHTML = '<strong>No se pudieron cargar los catálogos.</strong><br>' + e.message;
+    })
+    .obtenerCatalogos();
+
+  $('TIENE_AUXILIAR').addEventListener('change', function () {
+    var hay = this.value === 'Sí';
+    $('campoAuxiliar').classList.toggle('oculto', !hay);
+    if (!hay) $('NOMBRE_AUXILIAR').value = '';
+  });
+
+  function limpiarMarcas() {
+    CLAVES.forEach(function (c) {
+      var el = $(c);
+      if (!el) return;
+      el.classList.remove('malo');
+      var m = el.parentNode.querySelector('.malo-texto');
+      if (m) { m.textContent = ''; m.classList.add('oculto'); }
+    });
+    $('avisoError').classList.add('oculto');
+  }
+
+  function marcar(clave, mensaje) {
+    var el = $(clave);
+    if (!el) return;
+    el.classList.add('malo');
+    var m = el.parentNode.querySelector('.malo-texto');
+    if (m) { m.textContent = mensaje; m.classList.remove('oculto'); }
+  }
+
+  function aMinutos(hhmm) {
+    var p = hhmm.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
+
+  function revisar(datos) {
+    var fallas = [];
+    var auxiliar = datos.TIENE_AUXILIAR === 'Sí';
+
+    CLAVES.forEach(function (c) {
+      if (c === 'NOMBRE_AUXILIAR' && !auxiliar) return;
+      if (!datos[c]) {
+        var etiqueta = $(c).parentNode.querySelector('label').textContent.replace('*', '').trim();
+        marcar(c, 'Este dato es obligatorio.');
+        fallas.push('Falta ' + etiqueta + '.');
+      }
+    });
+
+    if (auxiliar && datos.NOMBRE_AUXILIAR && datos.NOMBRE_AUXILIAR === datos.DRIVER) {
+      marcar('NOMBRE_AUXILIAR', 'No puede ser la misma persona que el driver.');
+      fallas.push('El auxiliar no puede ser el mismo driver.');
+    }
+
+    var completas = ORDEN_HORAS.every(function (c) { return datos[c]; });
+    if (completas) {
+      for (var i = 1; i < ORDEN_HORAS.length; i++) {
+        if (aMinutos(datos[ORDEN_HORAS[i]]) < aMinutos(datos[ORDEN_HORAS[i - 1]])) {
+          marcar(ORDEN_HORAS[i], 'No puede ser antes de la hora de ' + ETIQUETAS_HORA[ORDEN_HORAS[i - 1]] + '.');
+          fallas.push('Las horas no van en orden.');
+          break;
+        }
+      }
+    }
+
+    var spr = parseInt(datos.SPR, 10);
+    var ent = parseInt(datos.ENTREGADOS, 10);
+    if (!isNaN(spr) && !isNaN(ent) && ent > spr) {
+      marcar('ENTREGADOS', 'No puede ser mayor que el SPR (' + spr + ').');
+      fallas.push('Entregados es mayor que el SPR.');
+    }
+
+    return fallas;
+  }
+
+  function mostrarFallas(fallas) {
+    var caja = $('avisoError');
+    caja.innerHTML = 'Revisa lo siguiente:<ul>' +
+      fallas.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
+    caja.classList.remove('oculto');
+    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  $('forma').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    limpiarMarcas();
+
+    var datos = {};
+    CLAVES.forEach(function (c) { datos[c] = ($(c).value || '').trim(); });
+
+    var fallas = revisar(datos);
+    if (fallas.length) { mostrarFallas(fallas); return; }
+
+    var boton = $('botonEnviar');
+    boton.disabled = true;
+    boton.textContent = 'Enviando…';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res.ok) {
+          $('forma').classList.add('oculto');
+          $('textoOk').textContent = res.mensaje;
+          $('pantallaOk').classList.remove('oculto');
+          window.scrollTo(0, 0);
+        } else {
+          mostrarFallas(res.errores);
+          boton.disabled = false;
+          boton.textContent = 'Enviar reporte';
+        }
+      })
+      .withFailureHandler(function (e) {
+        mostrarFallas(['No se pudo enviar: ' + e.message]);
+        boton.disabled = false;
+        boton.textContent = 'Enviar reporte';
+      })
+      .guardarInicial(datos);
+  });
+</script>
+</body>
+</html>
