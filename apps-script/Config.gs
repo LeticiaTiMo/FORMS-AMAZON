@@ -16,7 +16,7 @@ const CONFIG = {
 
   OPERADORES: {
     encabezadoNombre: 'NOMBRE DEL DRIVER',
-    encabezadoEstatus: 'ESTATUS',
+    encabezadoEstatus: 'STATUS',
     valorActivo: 'ACTIVO',
   },
 

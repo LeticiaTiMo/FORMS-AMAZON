@@ -8,15 +8,13 @@ No hay que instalar ningún programa: todo pasa dentro de Google.
 
 ## Antes de empezar
 
-En la pestaña `OPERADORES` de la hoja de control, agrega una columna:
+Nada: la pestaña `OPERADORES` ya tiene la columna **`STATUS`** en la columna D, con `ACTIVO` o
+`BAJA` en cada chofer. De 84 operadores, **23 están activos**, y solo esos aparecen en la lista
+del formulario.
 
-- Va en la **columna D** (está libre; E y F ya tienen el ID de ruta y la zona).
-- El encabezado, en la fila 1, debe decir exactamente: **`ESTATUS`**
-- En cada chofer escribe **`ACTIVO`** o **`BAJA`**.
-
-Solo los que digan `ACTIVO` aparecerán en la lista del formulario. Mientras esa columna no
-exista, el formulario muestra a todos, así que no se rompe nada si se te olvida — nada más no
-filtra.
+Si algún día cambia el nombre de ese encabezado, hay que ajustarlo en `Config.gs`, en
+`OPERADORES.encabezadoEstatus`. Mientras la columna no exista, el formulario muestra a todos:
+no se rompe, nada más deja de filtrar.
 
 ---
 
@@ -145,5 +143,5 @@ choferes siga siendo la misma:
 | `Falta configurar ID_HOJA` | El paso 4 quedó incompleto o el nombre tiene un error de dedo |
 | `No existe la pestania "OPERADORES"` | El nombre de la pestaña cambió |
 | `OPERADORES no tiene la columna...` | Falta el encabezado `NOMBRE DEL DRIVER` en la fila 1 |
-| La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `ESTATUS` |
+| La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `STATUS` |
 | Los choferes ven una pantalla de inicio de sesión | En el paso 5, *Quién tiene acceso* no quedó en **Cualquier usuario** |

@@ -79,9 +79,11 @@ baja se edita la hoja y el formulario se entera solo.
 
 ### Choferes activos
 
-La pestaña `OPERADORES` tiene 81 nombres, pero **no todos siguen activos y hoy nada los
-distingue**. Hay que agregarle una columna de estatus; sin ella el desplegable ofrecerá gente
-dada de baja.
+La pestaña `OPERADORES` tiene 84 operadores, de los cuales **solo 23 están activos**. Se
+distinguen por la columna `STATUS` (columna D), con los valores `ACTIVO` y `BAJA`.
+
+El desplegable muestra únicamente los `ACTIVO`. Sin ese filtro ofrecería 61 nombres de gente
+que ya no trabaja ahí.
 
 ### Zonas
 
