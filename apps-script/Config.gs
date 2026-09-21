@@ -52,8 +52,8 @@ const CONFIG = {
  * Cambiar este arreglo cambia la hoja: el encabezado se reescribe solo.
  */
 const COLUMNAS = [
+  // Envio inicial
   'MARCA_TIEMPO_INICIAL',
-  'MARCA_TIEMPO_FINAL',
   'FECHA',
   'CEDIS',
   'DRIVER',
@@ -67,8 +67,11 @@ const COLUMNAS = [
   'ZONA_RUTA',
   'ID_RUTA',
   'SPR',
-  'ENTREGADOS',
   'KM_INICIAL',
+  // Envio final
+  'MARCA_TIEMPO_FINAL',
+  'HR_UE',
+  'ENTREGADOS',
 ];
 
 /** Campos que manda el envio inicial, con su validacion. */
@@ -85,7 +88,6 @@ const CAMPOS_INICIAL = [
   { clave: 'ZONA_RUTA',       etiqueta: 'Zona de ruta',           tipo: 'texto',   obligatorio: true },
   { clave: 'ID_RUTA',         etiqueta: 'ID de ruta',             tipo: 'texto',   obligatorio: true },
   { clave: 'SPR',             etiqueta: 'SPR',                    tipo: 'entero',  obligatorio: true },
-  { clave: 'ENTREGADOS',      etiqueta: 'Entregados',             tipo: 'entero',  obligatorio: true },
   { clave: 'KM_INICIAL',      etiqueta: 'KM inicial',             tipo: 'entero',  obligatorio: true },
 ];
 

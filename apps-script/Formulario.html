@@ -232,13 +232,6 @@
     </div>
 
     <div class="campo">
-      <label for="ENTREGADOS">Entregados <span class="req">*</span></label>
-      <input type="number" id="ENTREGADOS" name="ENTREGADOS" inputmode="numeric" min="0" step="1">
-      <div class="pista">No puede ser mayor que el SPR.</div>
-      <div class="malo-texto oculto"></div>
-    </div>
-
-    <div class="campo">
       <label for="KM_INICIAL">KM inicial <span class="req">*</span></label>
       <input type="number" id="KM_INICIAL" name="KM_INICIAL" inputmode="numeric" min="0" step="1">
       <div class="malo-texto oculto"></div>
@@ -251,7 +244,7 @@
 <script>
   var CLAVES = ['CEDIS','DRIVER','TIENE_AUXILIAR','NOMBRE_AUXILIAR','PLACAS',
                 'HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE',
-                'ZONA_RUTA','ID_RUTA','SPR','ENTREGADOS','KM_INICIAL'];
+                'ZONA_RUTA','ID_RUTA','SPR','KM_INICIAL'];
 
   var ORDEN_HORAS = ['HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE'];
   var ETIQUETAS_HORA = {
@@ -356,13 +349,6 @@
           break;
         }
       }
-    }
-
-    var spr = parseInt(datos.SPR, 10);
-    var ent = parseInt(datos.ENTREGADOS, 10);
-    if (!isNaN(spr) && !isNaN(ent) && ent > spr) {
-      marcar('ENTREGADOS', 'No puede ser mayor que el SPR (' + spr + ').');
-      fallas.push('Entregados es mayor que el SPR.');
     }
 
     return fallas;

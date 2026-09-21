@@ -16,8 +16,8 @@ identifica por la llave `DRIVER + fecha`.
 
 | Envío | Cuándo | Cuántos campos |
 |---|---|---|
-| **Inicial** | Al arrancar la ruta | 14 |
-| **Final** | Al terminar la ruta | 6 |
+| **Inicial** | Al arrancar la ruta | 13 |
+| **Final** | Al terminar la ruta | 7 |
 
 ---
 
@@ -37,18 +37,19 @@ identifica por la llave `DRIVER + fecha`.
 | 10 | ZONA DE RUTA | S | Texto libre | Sí | Con sugerencias — ver *Zonas* abajo |
 | 11 | ID Ruta | T | Texto libre | Sí | Cambia seguido, por eso no es lista |
 | 12 | SPR | U | Entero | Sí | Mayor o igual a 0 |
-| 13 | Entregados | V | Entero | Sí | Entre 0 y SPR |
-| 14 | KM INICIAL | Z | Entero | Sí | Mayor o igual a 0 |
+| 13 | KM INICIAL | Z | Entero | Sí | Mayor o igual a 0 |
 
 ## Envío final
 
 | # | Campo | Col | Tipo | Obligatorio | Opciones / regla |
 |---|---|---|---|---|---|
-| 1 | Fallidas | W | Entero | Sí | Ver punto abierto: ¿se captura o se calcula? |
-| 2 | MOTIVO (COMENTARIOS) | AD | Texto largo | No | |
-| 3 | No visitado | X | Por definir | Por definir | |
-| 4 | Visitado | Y | Por definir | Por definir | |
-| 5 | KM FINAL | AA | Entero | Sí | No menor que KM INICIAL |
+| 1 | HR UE | R | Hora | Sí | No anterior a HR PE |
+| 2 | Entregados | V | Entero | Sí | Entre 0 y el SPR del envío inicial |
+| 3 | Fallidas | W | Entero | Sí | Ver punto abierto: ¿se captura o se calcula? |
+| 4 | No visitado | X | Por definir | Por definir | |
+| 5 | Visitado | Y | Por definir | Por definir | |
+| 6 | KM FINAL | AA | Entero | Sí | No menor que KM INICIAL |
+| 7 | MOTIVO (COMENTARIOS) | AD | Texto largo | No | |
 
 ---
 
@@ -104,19 +105,12 @@ Para no repetir ese desorden sin quitar la libertad de escribir:
 1. **`HR SALIDA BOD` aparece en los dos envíos.** Está listada tanto en el inicial como en el
    final. Se asume inicial hasta que se confirme.
 
-2. **`Entregados` quedó en el envío inicial.** No se puede saber cuántos paquetes se
-   entregaron al arrancar la ruta. Probablemente pertenece al envío final.
-
-3. **`HR UE` (hora última entrega) no aparece en ningún envío**, aunque sí es columna del
-   control y sí venía en el formato de WhatsApp. Falta confirmar si se elimina o si va en el
-   envío final.
-
-4. **`Fallidas`**: falta definir si el chofer la escribe o si se calcula como
+2. **`Fallidas`**: falta definir si el chofer la escribe o si se calcula como
    `SPR − Entregados`.
 
-5. **`No visitado` y `Visitado`**: vinieron vacías en toda la muestra. Falta saber qué
+3. **`No visitado` y `Visitado`**: vinieron vacías en toda la muestra. Falta saber qué
    significan y quién las llena.
 
-6. **La fecha la captura Leticia a mano**, pero el formulario la necesita como llave para
+4. **La fecha la captura Leticia a mano**, pero el formulario la necesita como llave para
    juntar el envío inicial con el final del mismo chofer. El formulario registrará su propia
    fecha de envío para ese fin.

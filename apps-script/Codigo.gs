@@ -154,18 +154,12 @@ function validarInicial(datos, catalogos) {
   }
 
   const spr = aEntero(limpio.SPR);
-  const entregados = aEntero(limpio.ENTREGADOS);
   const km = aEntero(limpio.KM_INICIAL);
 
   if (limpio.SPR && spr === null) errores.push('SPR debe ser un número entero.');
-  if (limpio.ENTREGADOS && entregados === null) errores.push('Entregados debe ser un número entero.');
   if (limpio.KM_INICIAL && km === null) errores.push('KM inicial debe ser un número entero.');
-  if (spr !== null && entregados !== null && entregados > spr) {
-    errores.push('Entregados (' + entregados + ') no puede ser mayor que SPR (' + spr + ').');
-  }
 
   if (spr !== null) limpio.SPR = spr;
-  if (entregados !== null) limpio.ENTREGADOS = entregados;
   if (km !== null) limpio.KM_INICIAL = km;
 
   return { errores: errores, datos: limpio };
