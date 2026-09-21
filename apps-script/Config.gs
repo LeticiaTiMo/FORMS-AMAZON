@@ -72,6 +72,11 @@ const COLUMNAS = [
   'MARCA_TIEMPO_FINAL',
   'HR_UE',
   'ENTREGADOS',
+  'DEVOLUCIONES',
+  'NO_VISITADO',
+  'VISITADO',
+  'KM_FINAL',
+  'MOTIVO',
 ];
 
 /** Campos que manda el envio inicial, con su validacion. */
@@ -89,6 +94,21 @@ const CAMPOS_INICIAL = [
   { clave: 'ID_RUTA',         etiqueta: 'ID de ruta',             tipo: 'texto',   obligatorio: true },
   { clave: 'SPR',             etiqueta: 'SPR',                    tipo: 'entero',  obligatorio: true },
   { clave: 'KM_INICIAL',      etiqueta: 'KM inicial',             tipo: 'entero',  obligatorio: true },
+];
+
+/**
+ * Campos del envio final.
+ * DEVOLUCIONES es como los choferes le llaman a lo que la hoja de control
+ * registra en la columna Fallidas. Es el mismo dato.
+ */
+const CAMPOS_FINAL = [
+  { clave: 'HR_UE',        etiqueta: 'Hora de última entrega', tipo: 'hora',   obligatorio: true },
+  { clave: 'ENTREGADOS',   etiqueta: 'Entregados',             tipo: 'entero', obligatorio: true },
+  { clave: 'DEVOLUCIONES', etiqueta: 'Devoluciones',           tipo: 'entero', obligatorio: true },
+  { clave: 'NO_VISITADO',  etiqueta: 'No visitado',            tipo: 'entero', obligatorio: true },
+  { clave: 'VISITADO',     etiqueta: 'Visitado',               tipo: 'entero', obligatorio: true },
+  { clave: 'KM_FINAL',     etiqueta: 'KM final',               tipo: 'entero', obligatorio: true },
+  { clave: 'MOTIVO',       etiqueta: 'Motivo',                 tipo: 'texto',  obligatorio: false },
 ];
 
 /** Las horas deben ir en este orden cronologico. */

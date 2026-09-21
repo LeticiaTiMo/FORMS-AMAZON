@@ -205,6 +205,54 @@ function buscarFila(h, driver, fecha) {
   return 0;
 }
 
+function fechaDeHoy() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function leerFila(h, numeroFila) {
+  const valores = h.getRange(numeroFila, 1, 1, COLUMNAS.length).getValues()[0];
+  const fila = {};
+  COLUMNAS.forEach(function (c, i) { fila[c] = valores[i]; });
+  return fila;
+}
+
+/**
+ * Decide que pantalla le toca al chofer, para que no tenga que elegir
+ * entre dos formularios ni recordar cual ya mando.
+ */
+function estadoDelDia(driver) {
+  const nombre = String(driver || '').trim();
+  if (!nombre) return { estado: 'sin_driver' };
+
+  const h = asegurarPestanaRespuestas();
+  const numeroFila = buscarFila(h, nombre, fechaDeHoy());
+  if (!numeroFila) return { estado: 'falta_inicial' };
+
+  const fila = leerFila(h, numeroFila);
+  if (String(fila.MARCA_TIEMPO_FINAL || '').trim()) {
+    return { estado: 'completo' };
+  }
+
+  return {
+    estado: 'falta_final',
+    referencia: {
+      SPR: Number(fila.SPR) || 0,
+      KM_INICIAL: Number(fila.KM_INICIAL) || 0,
+      HR_PE: comoHora(fila.HR_PE),
+      ZONA_RUTA: String(fila.ZONA_RUTA || ''),
+      ID_RUTA: String(fila.ID_RUTA || ''),
+    },
+  };
+}
+
+/** Sheets convierte "09:30" en hora y al releerla regresa un Date. */
+function comoHora(valor) {
+  if (valor instanceof Date) {
+    return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  return String(valor || '').trim();
+}
+
 function guardarInicial(datos) {
   // Sin candado, dos choferes que envian al mismo tiempo pueden escribir
   // en la misma fila o duplicar el renglon del dia.
@@ -238,6 +286,114 @@ function guardarInicial(datos) {
     h.appendRow(fila);
 
     return { ok: true, mensaje: 'Reporte inicial guardado. Gracias, ' + limpio.DRIVER + '.' };
+  } catch (e) {
+    return { ok: false, errores: ['Error al guardar: ' + e.message] };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+function validarFinal(datos, referencia) {
+  const errores = [];
+  const limpio = {};
+
+  CAMPOS_FINAL.forEach(function (campo) {
+    limpio[campo.clave] = String(datos[campo.clave] == null ? '' : datos[campo.clave]).trim();
+    if (campo.obligatorio && !limpio[campo.clave]) errores.push('Falta ' + campo.etiqueta + '.');
+  });
+
+  if (limpio.HR_UE && !esHoraValida(limpio.HR_UE)) {
+    errores.push('La hora de última entrega tiene formato inválido.');
+  } else if (limpio.HR_UE && referencia.HR_PE && esHoraValida(referencia.HR_PE)) {
+    if (aMinutos(limpio.HR_UE) < aMinutos(referencia.HR_PE)) {
+      errores.push('La última entrega (' + limpio.HR_UE + ') no puede ser antes de la primera (' + referencia.HR_PE + ').');
+    }
+  }
+
+  const numeros = {};
+  ['ENTREGADOS', 'DEVOLUCIONES', 'NO_VISITADO', 'VISITADO', 'KM_FINAL'].forEach(function (clave) {
+    if (!limpio[clave]) return;
+    const n = aEntero(limpio[clave]);
+    if (n === null) {
+      errores.push(clave.replace(/_/g, ' ').toLowerCase() + ' debe ser un número entero.');
+    } else {
+      numeros[clave] = n;
+      limpio[clave] = n;
+    }
+  });
+
+  const entregados = numeros.ENTREGADOS;
+  const devoluciones = numeros.DEVOLUCIONES;
+  const noVisitado = numeros.NO_VISITADO;
+  const visitado = numeros.VISITADO;
+  const kmFinal = numeros.KM_FINAL;
+
+  if (entregados !== undefined && devoluciones !== undefined && referencia.SPR) {
+    if (entregados + devoluciones !== referencia.SPR) {
+      errores.push(
+        'Entregados (' + entregados + ') más devoluciones (' + devoluciones + ') dan ' +
+        (entregados + devoluciones) + ', y el SPR del día es ' + referencia.SPR + '.'
+      );
+    }
+  }
+
+  if (noVisitado !== undefined && visitado !== undefined && devoluciones !== undefined) {
+    if (noVisitado + visitado !== devoluciones) {
+      errores.push(
+        'No visitado (' + noVisitado + ') más visitado (' + visitado + ') dan ' +
+        (noVisitado + visitado) + ', y las devoluciones son ' + devoluciones + '.'
+      );
+    }
+  }
+
+  if (kmFinal !== undefined && referencia.KM_INICIAL && kmFinal < referencia.KM_INICIAL) {
+    errores.push('El KM final (' + kmFinal + ') no puede ser menor que el inicial (' + referencia.KM_INICIAL + ').');
+  }
+
+  return { errores: errores, datos: limpio };
+}
+
+function guardarFinal(driver, datos) {
+  const candado = LockService.getScriptLock();
+  if (!candado.tryLock(20000)) {
+    return { ok: false, errores: ['El sistema está ocupado. Intenta de nuevo en unos segundos.'] };
+  }
+
+  try {
+    const nombre = String(driver || '').trim();
+    const h = asegurarPestanaRespuestas();
+    const numeroFila = buscarFila(h, nombre, fechaDeHoy());
+
+    if (!numeroFila) {
+      return { ok: false, errores: ['No hay reporte inicial de hoy. Manda primero el de la mañana.'] };
+    }
+
+    const fila = leerFila(h, numeroFila);
+    if (String(fila.MARCA_TIEMPO_FINAL || '').trim()) {
+      return { ok: false, errores: ['Ya mandaste el reporte final de hoy. Si necesitas corregirlo, avísale a Leticia.'] };
+    }
+
+    const referencia = {
+      SPR: Number(fila.SPR) || 0,
+      KM_INICIAL: Number(fila.KM_INICIAL) || 0,
+      HR_PE: comoHora(fila.HR_PE),
+    };
+
+    const revision = validarFinal(datos, referencia);
+    if (revision.errores.length) return { ok: false, errores: revision.errores };
+
+    const limpio = revision.datos;
+    limpio.MARCA_TIEMPO_FINAL = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+
+    // Los campos del envio final ocupan un bloque contiguo al final de COLUMNAS,
+    // asi que se escriben de una sola vez sin tocar lo que dejo el envio inicial.
+    const inicio = COLUMNAS.indexOf('MARCA_TIEMPO_FINAL');
+    const bloque = COLUMNAS.slice(inicio).map(function (c) {
+      return limpio[c] === undefined ? '' : limpio[c];
+    });
+    h.getRange(numeroFila, inicio + 1, 1, bloque.length).setValues([bloque]);
+
+    return { ok: true, mensaje: 'Reporte final guardado. Buen trabajo, ' + nombre + '.' };
   } catch (e) {
     return { ok: false, errores: ['Error al guardar: ' + e.message] };
   } finally {

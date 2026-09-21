@@ -17,6 +17,8 @@
     --error-fondo: #fdecea;
     --ok: #1b6b3a;
     --ok-fondo: #e6f4ea;
+    --aviso-fondo: #fff4e5;
+    --aviso-texto: #8a5300;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -33,7 +35,7 @@
   header {
     background: var(--azul);
     color: #fff;
-    padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    padding: 18px 16px;
     position: sticky;
     top: 0;
     z-index: 5;
@@ -45,12 +47,7 @@
 
   .campo { margin-bottom: 18px; }
 
-  label {
-    display: block;
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 6px;
-  }
+  label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 6px; }
   label .req { color: var(--error); margin-left: 2px; }
 
   input, select {
@@ -80,20 +77,36 @@
   .pista { font-size: 13.5px; color: var(--tenue); margin-top: 5px; }
   .malo-texto { font-size: 14px; color: var(--error); margin-top: 5px; font-weight: 600; }
 
-  .grupo-horas {
+  .cuadre { font-size: 14px; font-weight: 600; margin-top: 6px; }
+  .cuadre.bien { color: var(--ok); }
+  .cuadre.mal  { color: var(--aviso-texto); }
+
+  .grupo {
     background: var(--tarjeta);
     border: 1px solid var(--borde);
     border-radius: 12px;
     padding: 14px 14px 2px;
     margin-bottom: 18px;
   }
-  .grupo-horas h2 {
+  .grupo h2 {
     margin: 0 0 12px;
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: .6px;
     color: var(--tenue);
   }
+
+  .referencia {
+    background: #e8eef3;
+    border-left: 4px solid var(--azul-claro);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 15px;
+  }
+  .referencia strong { display: block; margin-bottom: 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--tenue); }
+  .referencia span { display: inline-block; margin-right: 16px; }
+  .referencia b { font-size: 18px; }
 
   button {
     width: 100%;
@@ -108,27 +121,22 @@
     cursor: pointer;
   }
   button:disabled { background: #8b9aa7; cursor: default; }
+  button.secundario { background: none; color: var(--azul-claro); font-weight: 600; font-size: 16px; padding: 12px; }
 
-  .aviso {
-    padding: 14px;
-    border-radius: 10px;
-    margin-bottom: 18px;
-    font-weight: 600;
-  }
+  .aviso { padding: 14px; border-radius: 10px; margin-bottom: 18px; font-weight: 600; }
   .aviso.error { background: var(--error-fondo); color: var(--error); }
   .aviso.error ul { margin: 8px 0 0; padding-left: 20px; font-weight: 500; }
 
-  .pantalla-ok { text-align: center; padding: 48px 20px; }
-  .pantalla-ok .marca {
+  .centrada { text-align: center; padding: 44px 20px; }
+  .centrada .marca {
     width: 68px; height: 68px; border-radius: 50%;
-    background: var(--ok-fondo); color: var(--ok);
     display: flex; align-items: center; justify-content: center;
     font-size: 36px; margin: 0 auto 18px;
+    background: var(--ok-fondo); color: var(--ok);
   }
-  .pantalla-ok h2 { margin: 0 0 8px; font-size: 21px; }
-  .pantalla-ok p  { margin: 0 0 26px; color: var(--tenue); }
-
-  .cargando { text-align: center; padding: 60px 20px; color: var(--tenue); }
+  .centrada .marca.info { background: #e8eef3; color: var(--azul-claro); }
+  .centrada h2 { margin: 0 0 8px; font-size: 21px; }
+  .centrada p  { margin: 0 0 26px; color: var(--tenue); }
 
   .oculto { display: none !important; }
 </style>
@@ -137,31 +145,30 @@
 
 <header>
   <h1>Reporte de ruta</h1>
-  <p>BDB Logística &middot; Envío inicial</p>
+  <p id="subtitulo">BDB Logística</p>
 </header>
 
 <main>
-  <div id="cargando" class="cargando">Cargando catálogos&hellip;</div>
+  <div id="cargando" class="centrada">Cargando&hellip;</div>
 
-  <div id="pantallaOk" class="pantalla-ok oculto">
-    <div class="marca">&check;</div>
-    <h2>Reporte enviado</h2>
-    <p id="textoOk"></p>
-    <button type="button" onclick="location.reload()">Enviar otro reporte</button>
-  </div>
+  <!-- Paso 1: quien eres -->
+  <form id="pasoDriver" class="oculto">
+    <div class="campo">
+      <label for="DRIVER">¿Quién eres? <span class="req">*</span></label>
+      <select id="DRIVER" name="DRIVER"></select>
+      <div class="pista">Selecciona tu nombre para continuar.</div>
+      <div class="malo-texto oculto"></div>
+    </div>
+    <button type="submit" id="botonContinuar">Continuar</button>
+  </form>
 
-  <form id="forma" class="oculto" novalidate>
-    <div id="avisoError" class="aviso error oculto"></div>
+  <!-- Paso 2a: envio inicial -->
+  <form id="formaInicial" class="oculto" novalidate>
+    <div id="errorInicial" class="aviso error oculto"></div>
 
     <div class="campo">
       <label for="CEDIS">CEDIS <span class="req">*</span></label>
       <select id="CEDIS" name="CEDIS"></select>
-      <div class="malo-texto oculto"></div>
-    </div>
-
-    <div class="campo">
-      <label for="DRIVER">Driver <span class="req">*</span></label>
-      <select id="DRIVER" name="DRIVER"></select>
       <div class="malo-texto oculto"></div>
     </div>
 
@@ -187,7 +194,7 @@
       <div class="malo-texto oculto"></div>
     </div>
 
-    <div class="grupo-horas">
+    <div class="grupo">
       <h2>Horas</h2>
       <div class="campo">
         <label for="HR_LLEGADA_BO">Hora de llegada a BO <span class="req">*</span></label>
@@ -213,7 +220,7 @@
 
     <div class="campo">
       <label for="ZONA_RUTA">Zona de ruta <span class="req">*</span></label>
-      <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" list="listaZonas" autocomplete="off" enterkeyhint="next">
+      <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" list="listaZonas" autocomplete="off">
       <datalist id="listaZonas"></datalist>
       <div class="pista">Escribe la zona. Las sugerencias son las más usadas.</div>
       <div class="malo-texto oculto"></div>
@@ -237,14 +244,98 @@
       <div class="malo-texto oculto"></div>
     </div>
 
-    <button type="submit" id="botonEnviar">Enviar reporte</button>
+    <button type="submit" id="botonInicial">Enviar reporte inicial</button>
+    <button type="button" class="secundario" onclick="location.reload()">No soy yo, cambiar de nombre</button>
   </form>
+
+  <!-- Paso 2b: envio final -->
+  <form id="formaFinal" class="oculto" novalidate>
+    <div id="errorFinal" class="aviso error oculto"></div>
+
+    <div class="referencia">
+      <strong>De tu reporte de la mañana</strong>
+      <span>SPR: <b id="refSPR">—</b></span>
+      <span>KM inicial: <b id="refKM">—</b></span>
+    </div>
+
+    <div class="campo">
+      <label for="HR_UE">Hora de última entrega <span class="req">*</span></label>
+      <input type="time" id="HR_UE" name="HR_UE">
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="grupo">
+      <h2>Paquetes</h2>
+      <div class="campo">
+        <label for="ENTREGADOS">Entregados <span class="req">*</span></label>
+        <input type="number" id="ENTREGADOS" name="ENTREGADOS" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="DEVOLUCIONES">Devoluciones <span class="req">*</span></label>
+        <input type="number" id="DEVOLUCIONES" name="DEVOLUCIONES" inputmode="numeric" min="0" step="1">
+        <div class="cuadre" id="cuadreSPR"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h2>Desglose de las devoluciones</h2>
+      <div class="campo">
+        <label for="NO_VISITADO">No visitado <span class="req">*</span></label>
+        <input type="number" id="NO_VISITADO" name="NO_VISITADO" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="VISITADO">Visitado <span class="req">*</span></label>
+        <input type="number" id="VISITADO" name="VISITADO" inputmode="numeric" min="0" step="1">
+        <div class="cuadre" id="cuadreDev"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="KM_FINAL">KM final <span class="req">*</span></label>
+      <input type="number" id="KM_FINAL" name="KM_FINAL" inputmode="numeric" min="0" step="1">
+      <div class="cuadre" id="cuadreKM"></div>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <div class="campo">
+      <label for="MOTIVO">Motivo</label>
+      <input type="text" id="MOTIVO" name="MOTIVO" autocomplete="off">
+      <div class="pista">Opcional. Por qué hubo devoluciones.</div>
+      <div class="malo-texto oculto"></div>
+    </div>
+
+    <button type="submit" id="botonFinal">Enviar reporte final</button>
+    <button type="button" class="secundario" onclick="location.reload()">No soy yo, cambiar de nombre</button>
+  </form>
+
+  <!-- Ya mando los dos -->
+  <div id="pantallaCompleto" class="centrada oculto">
+    <div class="marca info">&#10003;</div>
+    <h2>Ya estás al corriente</h2>
+    <p id="textoCompleto"></p>
+    <button type="button" onclick="location.reload()">Volver al inicio</button>
+  </div>
+
+  <!-- Confirmacion -->
+  <div id="pantallaOk" class="centrada oculto">
+    <div class="marca">&check;</div>
+    <h2>Reporte enviado</h2>
+    <p id="textoOk"></p>
+    <button type="button" onclick="location.reload()">Volver al inicio</button>
+  </div>
 </main>
 
 <script>
-  var CLAVES = ['CEDIS','DRIVER','TIENE_AUXILIAR','NOMBRE_AUXILIAR','PLACAS',
-                'HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE',
-                'ZONA_RUTA','ID_RUTA','SPR','KM_INICIAL'];
+  var CLAVES_INICIAL = ['CEDIS','TIENE_AUXILIAR','NOMBRE_AUXILIAR','PLACAS',
+                        'HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE',
+                        'ZONA_RUTA','ID_RUTA','SPR','KM_INICIAL'];
+
+  var CLAVES_FINAL = ['HR_UE','ENTREGADOS','DEVOLUCIONES','NO_VISITADO','VISITADO','KM_FINAL','MOTIVO'];
+  var OPCIONALES_FINAL = ['MOTIVO'];
 
   var ORDEN_HORAS = ['HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE'];
   var ETIQUETAS_HORA = {
@@ -254,7 +345,12 @@
     HR_PE: 'primera entrega'
   };
 
+  var driver = '';
+  var referencia = {};
+
   function $(id) { return document.getElementById(id); }
+  function mostrar(id) { $(id).classList.remove('oculto'); }
+  function esconder(id) { $(id).classList.add('oculto'); }
 
   function llenarSelect(sel, opciones, textoVacio) {
     sel.innerHTML = '';
@@ -270,43 +366,25 @@
     });
   }
 
-  google.script.run
-    .withSuccessHandler(function (cat) {
-      llenarSelect($('CEDIS'), cat.cedis, 'Selecciona…');
-      llenarSelect($('DRIVER'), cat.drivers, 'Selecciona tu nombre…');
-      llenarSelect($('NOMBRE_AUXILIAR'), cat.drivers, 'Selecciona al auxiliar…');
-      llenarSelect($('PLACAS'), cat.placas, 'Selecciona…');
+  function aMinutos(hhmm) {
+    var p = hhmm.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
 
-      var dl = $('listaZonas');
-      cat.zonas.forEach(function (z) {
-        var op = document.createElement('option');
-        op.value = z;
-        dl.appendChild(op);
-      });
+  function entero(id) {
+    var v = ($(id).value || '').trim();
+    if (!/^\d+$/.test(v)) return null;
+    return parseInt(v, 10);
+  }
 
-      $('cargando').classList.add('oculto');
-      $('forma').classList.remove('oculto');
-    })
-    .withFailureHandler(function (e) {
-      $('cargando').innerHTML = '<strong>No se pudieron cargar los catálogos.</strong><br>' + e.message;
-    })
-    .obtenerCatalogos();
-
-  $('TIENE_AUXILIAR').addEventListener('change', function () {
-    var hay = this.value === 'Sí';
-    $('campoAuxiliar').classList.toggle('oculto', !hay);
-    if (!hay) $('NOMBRE_AUXILIAR').value = '';
-  });
-
-  function limpiarMarcas() {
-    CLAVES.forEach(function (c) {
+  function limpiarMarcas(claves) {
+    claves.forEach(function (c) {
       var el = $(c);
       if (!el) return;
       el.classList.remove('malo');
       var m = el.parentNode.querySelector('.malo-texto');
       if (m) { m.textContent = ''; m.classList.add('oculto'); }
     });
-    $('avisoError').classList.add('oculto');
   }
 
   function marcar(clave, mensaje) {
@@ -317,31 +395,119 @@
     if (m) { m.textContent = mensaje; m.classList.remove('oculto'); }
   }
 
-  function aMinutos(hhmm) {
-    var p = hhmm.split(':');
-    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  function mostrarFallas(cajaId, fallas) {
+    var caja = $(cajaId);
+    caja.innerHTML = 'Revisa lo siguiente:<ul>' +
+      fallas.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
+    caja.classList.remove('oculto');
+    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function revisar(datos) {
+  function etiquetaDe(clave) {
+    var l = $(clave).parentNode.querySelector('label');
+    return l ? l.textContent.replace('*', '').trim() : clave;
+  }
+
+  // --- Arranque ---
+
+  google.script.run
+    .withSuccessHandler(function (cat) {
+      llenarSelect($('DRIVER'), cat.drivers, 'Selecciona tu nombre…');
+      llenarSelect($('NOMBRE_AUXILIAR'), cat.drivers, 'Selecciona al auxiliar…');
+      llenarSelect($('CEDIS'), cat.cedis, 'Selecciona…');
+      llenarSelect($('PLACAS'), cat.placas, 'Selecciona…');
+
+      var dl = $('listaZonas');
+      cat.zonas.forEach(function (z) {
+        var op = document.createElement('option');
+        op.value = z;
+        dl.appendChild(op);
+      });
+
+      esconder('cargando');
+      mostrar('pasoDriver');
+    })
+    .withFailureHandler(function (e) {
+      $('cargando').innerHTML = '<strong>No se pudieron cargar los catálogos.</strong><br>' + e.message;
+    })
+    .obtenerCatalogos();
+
+  // --- Paso 1 ---
+
+  $('pasoDriver').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    limpiarMarcas(['DRIVER']);
+
+    var elegido = ($('DRIVER').value || '').trim();
+    if (!elegido) { marcar('DRIVER', 'Selecciona tu nombre para continuar.'); return; }
+
+    var boton = $('botonContinuar');
+    boton.disabled = true;
+    boton.textContent = 'Revisando…';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        driver = elegido;
+        $('subtitulo').textContent = elegido;
+        esconder('pasoDriver');
+
+        if (res.estado === 'falta_inicial') {
+          $('subtitulo').textContent = elegido + ' · Envío inicial';
+          mostrar('formaInicial');
+        } else if (res.estado === 'falta_final') {
+          referencia = res.referencia || {};
+          $('subtitulo').textContent = elegido + ' · Envío final';
+          $('refSPR').textContent = referencia.SPR;
+          $('refKM').textContent = referencia.KM_INICIAL;
+          actualizarCuadres();
+          mostrar('formaFinal');
+        } else {
+          $('textoCompleto').textContent = 'Ya mandaste tus dos reportes de hoy. No tienes nada pendiente.';
+          mostrar('pantallaCompleto');
+        }
+        window.scrollTo(0, 0);
+      })
+      .withFailureHandler(function (e) {
+        marcar('DRIVER', 'No se pudo revisar: ' + e.message);
+        boton.disabled = false;
+        boton.textContent = 'Continuar';
+      })
+      .estadoDelDia(elegido);
+  });
+
+  // --- Envio inicial ---
+
+  $('TIENE_AUXILIAR').addEventListener('change', function () {
+    var hay = this.value === 'Sí';
+    $('campoAuxiliar').classList.toggle('oculto', !hay);
+    if (!hay) $('NOMBRE_AUXILIAR').value = '';
+  });
+
+  $('formaInicial').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    limpiarMarcas(CLAVES_INICIAL);
+    esconder('errorInicial');
+
+    var datos = { DRIVER: driver };
+    CLAVES_INICIAL.forEach(function (c) { datos[c] = ($(c).value || '').trim(); });
+
     var fallas = [];
     var auxiliar = datos.TIENE_AUXILIAR === 'Sí';
 
-    CLAVES.forEach(function (c) {
+    CLAVES_INICIAL.forEach(function (c) {
       if (c === 'NOMBRE_AUXILIAR' && !auxiliar) return;
       if (!datos[c]) {
-        var etiqueta = $(c).parentNode.querySelector('label').textContent.replace('*', '').trim();
         marcar(c, 'Este dato es obligatorio.');
-        fallas.push('Falta ' + etiqueta + '.');
+        fallas.push('Falta ' + etiquetaDe(c) + '.');
       }
     });
 
-    if (auxiliar && datos.NOMBRE_AUXILIAR && datos.NOMBRE_AUXILIAR === datos.DRIVER) {
-      marcar('NOMBRE_AUXILIAR', 'No puede ser la misma persona que el driver.');
+    if (auxiliar && datos.NOMBRE_AUXILIAR === driver) {
+      marcar('NOMBRE_AUXILIAR', 'No puedes ser tu propio auxiliar.');
       fallas.push('El auxiliar no puede ser el mismo driver.');
     }
 
-    var completas = ORDEN_HORAS.every(function (c) { return datos[c]; });
-    if (completas) {
+    if (ORDEN_HORAS.every(function (c) { return datos[c]; })) {
       for (var i = 1; i < ORDEN_HORAS.length; i++) {
         if (aMinutos(datos[ORDEN_HORAS[i]]) < aMinutos(datos[ORDEN_HORAS[i - 1]])) {
           marcar(ORDEN_HORAS[i], 'No puede ser antes de la hora de ' + ETIQUETAS_HORA[ORDEN_HORAS[i - 1]] + '.');
@@ -351,50 +517,152 @@
       }
     }
 
-    return fallas;
-  }
+    if (fallas.length) { mostrarFallas('errorInicial', fallas); return; }
 
-  function mostrarFallas(fallas) {
-    var caja = $('avisoError');
-    caja.innerHTML = 'Revisa lo siguiente:<ul>' +
-      fallas.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
-    caja.classList.remove('oculto');
-    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  $('forma').addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    limpiarMarcas();
-
-    var datos = {};
-    CLAVES.forEach(function (c) { datos[c] = ($(c).value || '').trim(); });
-
-    var fallas = revisar(datos);
-    if (fallas.length) { mostrarFallas(fallas); return; }
-
-    var boton = $('botonEnviar');
+    var boton = $('botonInicial');
     boton.disabled = true;
     boton.textContent = 'Enviando…';
 
     google.script.run
       .withSuccessHandler(function (res) {
         if (res.ok) {
-          $('forma').classList.add('oculto');
-          $('textoOk').textContent = res.mensaje;
-          $('pantallaOk').classList.remove('oculto');
+          esconder('formaInicial');
+          $('textoOk').textContent = res.mensaje + ' Al terminar la ruta vuelve a abrir esta liga para el reporte final.';
+          mostrar('pantallaOk');
           window.scrollTo(0, 0);
         } else {
-          mostrarFallas(res.errores);
+          mostrarFallas('errorInicial', res.errores);
           boton.disabled = false;
-          boton.textContent = 'Enviar reporte';
+          boton.textContent = 'Enviar reporte inicial';
         }
       })
       .withFailureHandler(function (e) {
-        mostrarFallas(['No se pudo enviar: ' + e.message]);
+        mostrarFallas('errorInicial', ['No se pudo enviar: ' + e.message]);
         boton.disabled = false;
-        boton.textContent = 'Enviar reporte';
+        boton.textContent = 'Enviar reporte inicial';
       })
       .guardarInicial(datos);
+  });
+
+  // --- Envio final ---
+
+  function actualizarCuadres() {
+    var spr = Number(referencia.SPR) || 0;
+    var ent = entero('ENTREGADOS');
+    var dev = entero('DEVOLUCIONES');
+    var nov = entero('NO_VISITADO');
+    var vis = entero('VISITADO');
+    var kmf = entero('KM_FINAL');
+    var kmi = Number(referencia.KM_INICIAL) || 0;
+
+    var c1 = $('cuadreSPR');
+    if (ent === null || dev === null) {
+      c1.textContent = 'Entregados más devoluciones deben sumar ' + spr + '.';
+      c1.className = 'cuadre';
+    } else if (ent + dev === spr) {
+      c1.textContent = '✓ Cuadra con el SPR de ' + spr + '.';
+      c1.className = 'cuadre bien';
+    } else {
+      c1.textContent = 'Suman ' + (ent + dev) + ' y deben sumar ' + spr + '.';
+      c1.className = 'cuadre mal';
+    }
+
+    var c2 = $('cuadreDev');
+    if (dev === null || nov === null || vis === null) {
+      c2.textContent = 'No visitado más visitado deben sumar las devoluciones.';
+      c2.className = 'cuadre';
+    } else if (nov + vis === dev) {
+      c2.textContent = '✓ Cuadra con las ' + dev + ' devoluciones.';
+      c2.className = 'cuadre bien';
+    } else {
+      c2.textContent = 'Suman ' + (nov + vis) + ' y las devoluciones son ' + dev + '.';
+      c2.className = 'cuadre mal';
+    }
+
+    var c3 = $('cuadreKM');
+    if (kmf === null) {
+      c3.textContent = '';
+      c3.className = 'cuadre';
+    } else if (kmf < kmi) {
+      c3.textContent = 'No puede ser menor que el KM inicial (' + kmi + ').';
+      c3.className = 'cuadre mal';
+    } else {
+      c3.textContent = 'Recorriste ' + (kmf - kmi) + ' km.';
+      c3.className = 'cuadre bien';
+    }
+  }
+
+  ['ENTREGADOS','DEVOLUCIONES','NO_VISITADO','VISITADO','KM_FINAL'].forEach(function (id) {
+    $(id).addEventListener('input', actualizarCuadres);
+  });
+
+  $('formaFinal').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    limpiarMarcas(CLAVES_FINAL);
+    esconder('errorFinal');
+
+    var datos = {};
+    CLAVES_FINAL.forEach(function (c) { datos[c] = ($(c).value || '').trim(); });
+
+    var fallas = [];
+    CLAVES_FINAL.forEach(function (c) {
+      if (OPCIONALES_FINAL.indexOf(c) !== -1) return;
+      if (!datos[c]) {
+        marcar(c, 'Este dato es obligatorio.');
+        fallas.push('Falta ' + etiquetaDe(c) + '.');
+      }
+    });
+
+    var spr = Number(referencia.SPR) || 0;
+    var ent = entero('ENTREGADOS');
+    var dev = entero('DEVOLUCIONES');
+    var nov = entero('NO_VISITADO');
+    var vis = entero('VISITADO');
+    var kmf = entero('KM_FINAL');
+    var kmi = Number(referencia.KM_INICIAL) || 0;
+
+    if (ent !== null && dev !== null && ent + dev !== spr) {
+      marcar('DEVOLUCIONES', 'Entregados más devoluciones deben sumar ' + spr + '.');
+      fallas.push('Entregados más devoluciones suman ' + (ent + dev) + ' y el SPR es ' + spr + '.');
+    }
+    if (nov !== null && vis !== null && dev !== null && nov + vis !== dev) {
+      marcar('VISITADO', 'No visitado más visitado deben sumar ' + dev + '.');
+      fallas.push('El desglose suma ' + (nov + vis) + ' y las devoluciones son ' + dev + '.');
+    }
+    if (kmf !== null && kmf < kmi) {
+      marcar('KM_FINAL', 'No puede ser menor que el KM inicial (' + kmi + ').');
+      fallas.push('El KM final es menor que el inicial.');
+    }
+    if (datos.HR_UE && referencia.HR_PE && aMinutos(datos.HR_UE) < aMinutos(referencia.HR_PE)) {
+      marcar('HR_UE', 'No puede ser antes de la primera entrega (' + referencia.HR_PE + ').');
+      fallas.push('La última entrega es antes que la primera.');
+    }
+
+    if (fallas.length) { mostrarFallas('errorFinal', fallas); return; }
+
+    var boton = $('botonFinal');
+    boton.disabled = true;
+    boton.textContent = 'Enviando…';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res.ok) {
+          esconder('formaFinal');
+          $('textoOk').textContent = res.mensaje;
+          mostrar('pantallaOk');
+          window.scrollTo(0, 0);
+        } else {
+          mostrarFallas('errorFinal', res.errores);
+          boton.disabled = false;
+          boton.textContent = 'Enviar reporte final';
+        }
+      })
+      .withFailureHandler(function (e) {
+        mostrarFallas('errorFinal', ['No se pudo enviar: ' + e.message]);
+        boton.disabled = false;
+        boton.textContent = 'Enviar reporte final';
+      })
+      .guardarFinal(driver, datos);
   });
 </script>
 </body>
