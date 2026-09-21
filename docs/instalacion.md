@@ -83,7 +83,7 @@ cualquiera podría verlo. Se guarda aparte:
 1. Arriba a la derecha: **Implementar → Nueva implementación**.
 2. En el engrane junto a *Seleccionar tipo*, elige **Aplicación web**.
 3. Llena así:
-   - *Descripción*: `Version 1 - envio inicial`
+   - *Descripción*: `Version 1 - envio inicial y final`
    - *Ejecutar como*: **Yo** (tu correo)
    - *Quién tiene acceso*: **Cualquier usuario**
 4. **Implementar**.
@@ -101,17 +101,28 @@ cualquiera podría verlo. Se guarda aparte:
 ## Paso 6 · Probarlo
 
 1. Abre la liga en tu celular.
-2. Llena el formulario y envíalo.
-3. Revisa la hoja: debe haber aparecido una pestaña nueva llamada **`Respuestas_Form`** con tu
+2. Elige un nombre de la lista. Como esa persona no ha mandado nada hoy, te debe salir el
+   **envío inicial**.
+3. Llénalo y envíalo.
+4. Revisa la hoja: debe haber aparecido una pestaña nueva llamada **`Respuestas_Form`** con tu
    renglón.
+5. Vuelve a abrir la liga y elige **el mismo nombre**. Ahora te debe salir el **envío final**,
+   mostrando arriba el SPR y el KM inicial que capturaste.
+6. Llénalo y envíalo. El renglón se completa: no se crea uno nuevo.
+7. Abre la liga una tercera vez con ese nombre. Debe decir que ya estás al corriente.
 
 Prueba también que **no** te deje enviar:
 
-- Deja un campo vacío.
-- Pon `Entregados` mayor que `SPR`.
-- Pon la hora de salida antes que la de llegada.
+| Prueba | Qué debe pasar |
+|---|---|
+| Dejar un campo vacío | Lo marca en rojo y no envía |
+| Hora de salida antes que la de llegada | Marca que las horas no van en orden |
+| `Entregados` + `Devoluciones` distinto del SPR | Te dice cuánto suman y cuánto deberían |
+| `No visitado` + `Visitado` distinto de las devoluciones | Marca el descuadre |
+| `KM final` menor que el inicial | No lo acepta |
 
-En los tres casos la pantalla debe marcarte el error y no enviar nada.
+En el envío final, las cuentas se van calculando mientras escribes: aparece en verde cuando
+cuadra y en naranja cuando no, sin tener que intentar enviar.
 
 ---
 

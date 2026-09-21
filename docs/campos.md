@@ -19,6 +19,10 @@ identifica por la llave `DRIVER + fecha`.
 | **Inicial** | Al arrancar la ruta | 13 |
 | **Final** | Al terminar la ruta | 7 |
 
+Los choferes usan **una sola liga**. Al entrar eligen su nombre y la pantalla decide qué
+mostrarles según lo que ya hayan mandado ese día: el envío inicial, el final, o el aviso de que
+ya están al corriente. Así no tienen que recordar cuál les toca ni manejar dos direcciones.
+
 ---
 
 ## Envío inicial
@@ -44,12 +48,37 @@ identifica por la llave `DRIVER + fecha`.
 | # | Campo | Col | Tipo | Obligatorio | Opciones / regla |
 |---|---|---|---|---|---|
 | 1 | HR UE | R | Hora | Sí | No anterior a HR PE |
-| 2 | Entregados | V | Entero | Sí | Entre 0 y el SPR del envío inicial |
-| 3 | Fallidas | W | Entero | Sí | Ver punto abierto: ¿se captura o se calcula? |
-| 4 | No visitado | X | Por definir | Por definir | |
-| 5 | Visitado | Y | Por definir | Por definir | |
+| 2 | Entregados | V | Entero | Sí | |
+| 3 | Devoluciones | W | Entero | Sí | Lo escribe el chofer |
+| 4 | No visitado | X | Entero | Sí | |
+| 5 | Visitado | Y | Entero | Sí | |
 | 6 | KM FINAL | AA | Entero | Sí | No menor que KM INICIAL |
-| 7 | MOTIVO (COMENTARIOS) | AD | Texto largo | No | |
+| 7 | MOTIVO | AD | Texto | No | Por qué hubo devoluciones |
+
+**`Devoluciones` es como los choferes le llaman a lo que la hoja registra en la columna
+`Fallidas`.** Es el mismo dato: la pantalla usa la palabra de ellos y el espejo lo deja en la
+columna que le corresponde.
+
+### Las dos cuentas que deben cuadrar
+
+```
+Entregados + Devoluciones = SPR
+No visitado + Visitado   = Devoluciones
+```
+
+Ambas se bloquean en el envío: si no cuadran, no deja mandar. Además la pantalla las va
+calculando mientras el chofer escribe, para que corrija antes de intentar enviar.
+
+Se verificaron contra el histórico antes de imponerlas:
+
+| Regla | Registros evaluables | Cuadran |
+|---|---|---|
+| `Entregados + Devoluciones = SPR` | 2,053 | **2,053 (100%)** |
+| `No visitado + Visitado = Devoluciones` | 368 | 358 |
+
+Los 10 casos que no cuadran no se contradicen: traen devoluciones con el desglose en cero, o
+sea que no lo llenaron. Y ahí está lo importante — **solo 368 de 2,053 registros traen el
+desglose**. El 82% de las veces nadie lo capturó. Volverlo obligatorio cierra ese hueco.
 
 ---
 
@@ -107,12 +136,10 @@ Para no repetir ese desorden sin quitar la libertad de escribir:
 1. **`HR SALIDA BOD` aparece en los dos envíos.** Está listada tanto en el inicial como en el
    final. Se asume inicial hasta que se confirme.
 
-2. **`Fallidas`**: falta definir si el chofer la escribe o si se calcula como
-   `SPR − Entregados`.
-
-3. **`No visitado` y `Visitado`**: vinieron vacías en toda la muestra. Falta saber qué
-   significan y quién las llena.
-
-4. **La fecha la captura Leticia a mano**, pero el formulario la necesita como llave para
-   juntar el envío inicial con el final del mismo chofer. El formulario registrará su propia
+2. **La fecha la captura Leticia a mano**, pero el formulario la necesita como llave para
+   juntar el envío inicial con el final del mismo chofer. El formulario registra su propia
    fecha de envío para ese fin.
+
+3. **El espejo a `BD_AMAZON` está pendiente.** Hoy el formulario solo escribe en
+   `Respuestas_Form`. Se conecta con la hoja de control cuando los dos envíos estén probados
+   en operación real.
