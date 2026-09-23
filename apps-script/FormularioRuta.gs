@@ -82,24 +82,10 @@ function driversActivos() {
   return activos.sort(function (a, b) { return a.localeCompare(b, 'es'); });
 }
 
-function placas() {
-  const valores = pestana(CONFIG.PESTANAS.placas).getDataRange().getValues();
-  const lista = [];
-  for (let f = 0; f < valores.length; f++) {
-    const p = String(valores[f][0] || '').trim();
-    if (!p || p.toUpperCase() === 'PLACAS') continue;
-    if (lista.indexOf(p) === -1) lista.push(p);
-  }
-  return lista.sort();
-}
-
 function obtenerCatalogos() {
   return {
     drivers: driversActivos(),
-    placas: placas(),
     cedis: CONFIG.CEDIS,
-    zonas: CONFIG.ZONAS_SUGERIDAS,
-    campos: CAMPOS_INICIAL,
   };
 }
 
@@ -141,9 +127,6 @@ function validarInicial(datos, catalogos) {
   }
   if (limpio.DRIVER && catalogos.drivers.indexOf(limpio.DRIVER) === -1) {
     errores.push('El driver no está en la lista de operadores activos.');
-  }
-  if (limpio.PLACAS && catalogos.placas.indexOf(limpio.PLACAS) === -1) {
-    errores.push('La placa no está en el catálogo.');
   }
   if (['Sí', 'NO'].indexOf(limpio.TIENE_AUXILIAR) === -1) {
     errores.push('Indica si la ruta tiene auxiliar.');
@@ -284,7 +267,7 @@ function guardarInicial(datos) {
   }
 
   try {
-    const catalogos = { drivers: driversActivos(), placas: placas(), cedis: CONFIG.CEDIS };
+    const catalogos = { drivers: driversActivos(), cedis: CONFIG.CEDIS };
     const revision = validarInicial(datos, catalogos);
     if (revision.errores.length) return { ok: false, errores: revision.errores };
 

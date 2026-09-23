@@ -11,7 +11,6 @@ const CONFIG = {
   PESTANAS: {
     respuestas: 'Respuestas_Form',
     operadores: 'OPERADORES',
-    placas: 'PLACAS',
   },
 
   OPERADORES: {
@@ -21,30 +20,6 @@ const CONFIG = {
   },
 
   CEDIS: ['DMT3', 'DMT6', 'DMT4', 'DMT2', 'DTR1'],
-
-  // Solo sugerencias: el campo acepta cualquier texto porque las zonas cambian.
-  ZONAS_SUGERIDAS: [
-    'Cumbres',
-    'San Jerónimo',
-    'San Pedro',
-    'Santa Catarina',
-    'Santa María',
-    'Monterrey',
-    'Puerta de Hierro',
-    'Vista Hermosa',
-    'Guadalupe',
-    'San Agustín',
-    'Apodaca',
-    'García',
-    'Santiago',
-    'San Cristóbal',
-    'Escobedo',
-    'Linda Vista',
-    'La Rioja',
-    'La Herradura',
-    'Mitras',
-    'San Nicolás',
-  ],
 };
 
 /**
@@ -85,7 +60,7 @@ const CAMPOS_INICIAL = [
   { clave: 'DRIVER',          etiqueta: 'Driver',                 tipo: 'lista',   obligatorio: true },
   { clave: 'TIENE_AUXILIAR',  etiqueta: 'La ruta tiene auxiliar', tipo: 'lista',   obligatorio: true },
   { clave: 'NOMBRE_AUXILIAR', etiqueta: 'Nombre del auxiliar',    tipo: 'lista',   obligatorio: false },
-  { clave: 'PLACAS',          etiqueta: 'Placas',                 tipo: 'lista',   obligatorio: true },
+  { clave: 'PLACAS',          etiqueta: 'Placas',                 tipo: 'texto',   obligatorio: true },
   { clave: 'HR_LLEGADA_BO',   etiqueta: 'Hora de llegada a BO',   tipo: 'hora',    obligatorio: true },
   { clave: 'HR_ENTRADA_BO',   etiqueta: 'Hora de entrada a BO',   tipo: 'hora',    obligatorio: true },
   { clave: 'HR_SALIDA_BOD',   etiqueta: 'Hora de salida de BOD',  tipo: 'hora',    obligatorio: true },

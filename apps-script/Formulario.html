@@ -190,7 +190,7 @@
 
     <div class="campo">
       <label for="PLACAS">Placas <span class="req">*</span></label>
-      <select id="PLACAS" name="PLACAS"></select>
+      <input type="text" id="PLACAS" name="PLACAS" autocomplete="off" autocapitalize="characters">
       <div class="malo-texto oculto"></div>
     </div>
 
@@ -220,9 +220,7 @@
 
     <div class="campo">
       <label for="ZONA_RUTA">Zona de ruta <span class="req">*</span></label>
-      <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" list="listaZonas" autocomplete="off">
-      <datalist id="listaZonas"></datalist>
-      <div class="pista">Escribe la zona. Las sugerencias son las más usadas.</div>
+      <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" autocomplete="off">
       <div class="malo-texto oculto"></div>
     </div>
 
@@ -415,14 +413,6 @@
       llenarSelect($('DRIVER'), cat.drivers, 'Selecciona tu nombre…');
       llenarSelect($('NOMBRE_AUXILIAR'), cat.drivers, 'Selecciona al auxiliar…');
       llenarSelect($('CEDIS'), cat.cedis, 'Selecciona…');
-      llenarSelect($('PLACAS'), cat.placas, 'Selecciona…');
-
-      var dl = $('listaZonas');
-      cat.zonas.forEach(function (z) {
-        var op = document.createElement('option');
-        op.value = z;
-        dl.appendChild(op);
-      });
 
       esconder('cargando');
       mostrar('pasoDriver');

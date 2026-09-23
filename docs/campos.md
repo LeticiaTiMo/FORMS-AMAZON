@@ -33,12 +33,12 @@ ya están al corriente. Así no tienen que recordar cuál les toca ni manejar do
 | 2 | DRIVER | G | Lista | Sí | Pestaña `OPERADORES`, solo activos |
 | 3 | La ruta tiene auxiliar | I | Lista | Sí | `Sí` / `NO` |
 | 4 | NOMBRE (auxiliar) | J | Lista | Solo si el anterior es `Sí` | **Misma lista que DRIVER** |
-| 5 | Placas | K | Lista | Sí | Pestaña `PLACAS` |
+| 5 | Placas | K | Texto libre | Sí | Cambian seguido, por eso no es lista |
 | 6 | HR LLEGADA BO | N | Hora | Sí | |
 | 7 | HR ENTRADA BO | O | Hora | Sí | No anterior a HR LLEGADA BO |
 | 8 | HR SALIDA BOD | P | Hora | Sí | No anterior a HR ENTRADA BO |
 | 9 | HR PE | Q | Hora | Sí | No anterior a HR SALIDA BOD |
-| 10 | ZONA DE RUTA | S | Texto libre | Sí | Con sugerencias — ver *Zonas* abajo |
+| 10 | ZONA DE RUTA | S | Texto libre | Sí | Ver *Zonas* abajo |
 | 11 | ID Ruta | T | Texto libre | Sí | Cambia seguido, por eso no es lista |
 | 12 | SPR | U | Entero | Sí | Mayor o igual a 0 |
 | 13 | KM INICIAL | Z | Entero | Sí | Mayor o igual a 0 |
@@ -100,10 +100,11 @@ desglose**. El 82% de las veces nadie lo capturó. Volverlo obligatorio cierra e
 Las listas desplegables se leen **en vivo** de la hoja, nunca del código. Para dar de alta o de
 baja se edita la hoja y el formulario se entera solo.
 
+Solo dos campos son lista desplegable. El resto es escritura libre.
+
 | Lista | De dónde sale |
 |---|---|
 | DRIVER y NOMBRE (auxiliar) | Pestaña `OPERADORES`, columna `NOMBRE DEL DRIVER` |
-| Placas | Pestaña `PLACAS`, columna A |
 | CEDIS | Fijo en configuración — solo 5 valores y no cambian |
 
 ### Choferes activos
@@ -114,20 +115,22 @@ distinguen por la columna `STATUS` (columna D), con los valores `ACTIVO` y `BAJA
 El desplegable muestra únicamente los `ACTIVO`. Sin ese filtro ofrecería 61 nombres de gente
 que ya no trabaja ahí.
 
-### Zonas
+### Zonas, rutas y placas
 
-`ZONA DE RUTA` e `ID Ruta` son **escritura libre**, porque cambian seguido y una lista cerrada
-quedaría desactualizada.
+`ZONA DE RUTA`, `ID Ruta` y `Placas` son **escritura libre**, porque cambian seguido y una
+lista cerrada quedaría desactualizada. Es una decisión de operación, tomada sabiendo lo que
+cuesta.
 
-El costo de esa decisión es conocido: el histórico tiene **50 valores distintos para unas 20
-zonas reales**. Conviven `San Jerónimo`, `San Jeronimo` y `San Jemo`; `Cumbres` y `Cumbres `
-con espacio al final; `San Pedro`, `San Pedro ` y `San Pédro`.
+Y cuesta: el histórico tiene **50 valores distintos para unas 20 zonas reales**. Conviven
+`San Jerónimo`, `San Jeronimo` y `San Jemo`; `Cumbres` y `Cumbres ` con espacio al final;
+`San Pedro`, `San Pedro ` y `San Pédro`.
 
-Para no repetir ese desorden sin quitar la libertad de escribir:
+Lo único que se hace al respecto es **recortar los espacios** de sobra al guardar, que son la
+causa de duplicados como `Cumbres` contra `Cumbres `. Lo demás queda a criterio de quien
+escribe.
 
-- El campo ofrece **sugerencias** con las zonas ya usadas, pero acepta cualquier texto.
-- Al guardar se **recortan los espacios** de sobra al inicio y al final, que es la causa de
-  duplicados como `Cumbres` contra `Cumbres `.
+Si algún día el desorden estorba más que la flexibilidad, la salida no es volverlos lista
+cerrada sino ofrecer sugerencias a partir de lo ya capturado, que corrige sin estorbar.
 
 ---
 
