@@ -82,16 +82,36 @@ desglose**. El 82% de las veces nadie lo capturó. Volverlo obligatorio cierra e
 
 ---
 
-## Lo que el formulario NO toca
+## El espejo a BD_AMAZON
 
-**Leticia captura a mano** en la hoja de control, como hasta hoy:
-`SEMANA` · `MES` · `PERIODO` · `CAPTURA` · `FECHA` · `Tipo de Vehículo` ·
-`TIPO DE SERVICIO` · `Tipo de ruta`
+El formulario escribe en `Respuestas_Form`. De ahí a la hoja de control pasa **cuando Leticia
+lo decide**, con la opción *Vaciar reportes* del menú **Formulario de ruta**.
 
-**Salen de fórmula** y no se escriben desde el formulario:
-`KM RECORRIDOS` (= KM FINAL − KM INICIAL) · `PERFORMANCE` · `PROD_HORA` · `OHR`
+Solo pasan los reportes **cerrados**, los que ya tienen envío final. Los que siguen a medias se
+quedan esperando, y el aviso al terminar dice cuántos son.
 
-`FOTO RUTA` (col AC) quedó fuera de ambos envíos.
+### El espejo nunca pasa de la columna AA
+
+De `AB` en adelante la hoja se llena sola con fórmulas extendidas miles de filas hacia abajo.
+Escribir ahí las borraría, y el daño no se notaría hasta que las cuentas dejaran de cuadrar.
+
+| Columnas | Quién las llena |
+|---|---|
+| `F`–`AA`, salvo las de abajo | El espejo, con lo que capturó el chofer |
+| `A` `B` `C` `D` `E` `H` `L` `M` | Leticia, a mano |
+| `V` Entregados | Fórmula de la hoja: `SPR − devoluciones` |
+| `AB` en adelante | Fórmulas de la hoja |
+
+`MOTIVO` se guarda en `Respuestas_Form` pero **no se espeja**, porque su columna (`AD`) cae
+dentro de esa zona. Si hace falta consultarlo, está en la pestaña de respuestas.
+
+`FOTO RUTA` (col `AC`) quedó fuera de ambos envíos.
+
+### Las horas van como fracción del día
+
+`PROD_HORA` y `OHR` multiplican diferencias de horas por 24. Un texto `"09:30"` en esas
+columnas rompe ambas fórmulas sin dar error, así que el espejo convierte cada hora a la
+fracción del día que la hoja espera.
 
 ---
 
@@ -143,6 +163,7 @@ cerrada sino ofrecer sugerencias a partir de lo ya capturado, que corrige sin es
    juntar el envío inicial con el final del mismo chofer. El formulario registra su propia
    fecha de envío para ese fin.
 
-3. **El espejo a `BD_AMAZON` está pendiente.** Hoy el formulario solo escribe en
-   `Respuestas_Form`. Se conecta con la hoja de control cuando los dos envíos estén probados
-   en operación real.
+3. **`V` (Entregados) y `AB` (KM RECORRIDOS) tienen fórmula solo hasta la fila 2238**, donde
+   termina el dato. A diferencia de `AE`, `AF` y `AG`, que llegan hasta la 34085. Leticia va a
+   extenderlas para que se llenen solas; mientras no lo haga, quedarán vacías en los renglones
+   que agregue el espejo.

@@ -56,20 +56,36 @@ function reportesPendientes(h) {
   return listos;
 }
 
-function armarRenglon(datos, filaDestino, anchoControl) {
-  const renglon = new Array(anchoControl).fill('');
+/**
+ * El renglon llega hasta AA y ni una columna mas. De AB en adelante viven
+ * formulas ya extendidas hacia abajo, asi que escribir ahi, aunque fuera una
+ * celda vacia, las borraria.
+ */
+const ULTIMA_COLUMNA_ESPEJO = 'AA';
+
+/**
+ * Donde termina el dato de verdad, que no es donde termina la hoja: las
+ * formulas de AE a AG estan extendidas miles de filas por debajo del ultimo
+ * reporte, asi que getLastRow apunta al vacio. Se busca por la columna del
+ * driver, que solo tiene algo cuando hay un reporte real.
+ */
+function primeraFilaLibre(control) {
+  const columnaLlave = columnaANumero(ESPEJO_VALORES.DRIVER);
+  const valores = control.getRange(1, columnaLlave, control.getMaxRows(), 1).getValues();
+  for (let f = valores.length - 1; f >= 0; f--) {
+    if (String(valores[f][0] || '').trim()) return f + 2;
+  }
+  return 2;
+}
+
+function armarRenglon(datos) {
+  const ancho = columnaANumero(ULTIMA_COLUMNA_ESPEJO);
+  const renglon = new Array(ancho).fill('');
 
   Object.keys(ESPEJO_VALORES).forEach(function (clave) {
     const i = columnaANumero(ESPEJO_VALORES[clave]) - 1;
-    if (i >= anchoControl) return;
     const valor = datos[clave];
     renglon[i] = COLUMNAS_HORA.indexOf(clave) !== -1 ? aFraccionDeDia(valor) : valor;
-  });
-
-  Object.keys(ESPEJO_FORMULAS).forEach(function (letra) {
-    const i = columnaANumero(letra) - 1;
-    if (i >= anchoControl) return;
-    renglon[i] = ESPEJO_FORMULAS[letra].replace(/\{f\}/g, String(filaDestino));
   });
 
   return renglon;
@@ -107,11 +123,14 @@ function vaciarAControl() {
       };
     }
 
-    const ancho = control.getLastColumn();
-    const primeraFila = control.getLastRow() + 1;
+    // getLastRow mira toda la hoja, y las formulas de AE a AG llegan miles de
+    // filas mas abajo que el dato. Hay que buscar donde termina el dato de
+    // verdad, no donde termina la hoja, o el espejo escribiria en el vacio.
+    const primeraFila = primeraFilaLibre(control);
+    const ancho = columnaANumero(ULTIMA_COLUMNA_ESPEJO);
 
-    const renglones = pendientes.map(function (p, i) {
-      return armarRenglon(p.datos, primeraFila + i, ancho);
+    const renglones = pendientes.map(function (p) {
+      return armarRenglon(p.datos);
     });
 
     control.getRange(primeraFila, 1, renglones.length, ancho).setValues(renglones);
@@ -133,6 +152,7 @@ function vaciarAControl() {
       mensaje += '\n\nQuedan ' + incompletos + ' sin cerrar: el chofer aún no manda el reporte final.';
     }
     mensaje += '\n\nFaltan por capturar a mano: semana, mes, periodo, captura, fecha, tipo de vehículo, tipo de servicio y tipo de ruta.';
+    mensaje += '\n\nDe KM RECORRIDOS en adelante se llena solo con tus fórmulas. Si algo quedó vacío, es que la fórmula no llega hasta ahí.';
 
     return { ok: true, vaciados: renglones.length, incompletos: incompletos, mensaje: mensaje };
   } catch (e) {

@@ -99,9 +99,18 @@ const COLUMNAS_HORA = [
 
 /**
  * A que columna de BD_AMAZON va cada respuesta.
- * Las que no aparecen aqui las captura Leticia a mano y el espejo no las toca:
- * A SEMANA, B MES, C PERIODO, D CAPTURA, E FECHA, H Tipo de Vehiculo,
- * L TIPO DE SERVICIO, M Tipo de ruta y AC FOTO RUTA.
+ *
+ * El espejo escribe solo valores y **nunca pasa de AA**. De AB en adelante la
+ * hoja se llena sola con formulas ya extendidas, y escribir ahi las borraria.
+ *
+ * Tampoco toca las que captura Leticia a mano: A SEMANA, B MES, C PERIODO,
+ * D CAPTURA, E FECHA, H Tipo de Vehiculo, L TIPO DE SERVICIO y M Tipo de ruta.
+ *
+ * V Entregados queda fuera aunque el chofer lo capture, porque en la hoja de
+ * control sale de una formula: SPR menos devoluciones.
+ *
+ * MOTIVO se guarda en Respuestas_Form pero no se espeja, por la misma regla de
+ * no tocar de AB en adelante.
  */
 const ESPEJO_VALORES = {
   CEDIS: 'F',
@@ -122,21 +131,4 @@ const ESPEJO_VALORES = {
   VISITADO: 'Y',
   KM_INICIAL: 'Z',
   KM_FINAL: 'AA',
-  MOTIVO: 'AD',
-};
-
-/**
- * Columnas calculadas de BD_AMAZON. Se escribe la formula, no el resultado:
- * si se escribiera el numero, la hoja dejaria de recalcular al corregir un dato
- * y nadie lo notaria hasta que las cuentas dejaran de cuadrar.
- *
- * Por eso Entregados no esta en ESPEJO_VALORES aunque el chofer lo capture:
- * en la hoja de control sale de SPR menos devoluciones.
- */
-const ESPEJO_FORMULAS = {
-  V: '=U{f}-W{f}',
-  AB: '=AA{f}-Z{f}',
-  AE: '=IFERROR(V{f}/U{f},"")',
-  AF: '=V{f}/((R{f}-Q{f})*24)',
-  AG: '=IFERROR((R{f}-P{f})*24,"")',
 };
