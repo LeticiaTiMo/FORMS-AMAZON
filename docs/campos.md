@@ -107,8 +107,12 @@ Escribir ahí las borraría, y el daño no se notaría hasta que las cuentas dej
 |---|---|
 | `F`–`AA`, salvo las de abajo | El espejo, con lo que capturó el chofer |
 | `A` `B` `C` `D` `E` `H` `L` `M` | Leticia, a mano |
-| `V` Entregados | Fórmula de la hoja: `SPR − devoluciones` |
-| `AB` en adelante | Fórmulas de la hoja |
+| `V` Entregados | El espejo, con la fórmula `=U−W`, al llegar el envío final |
+| `AB` en adelante | Fórmulas ya extendidas en la hoja |
+
+`V` se escribe como **fórmula y no como número**, para que siga recalculando si alguien corrige
+un dato después. Y se escribe hasta la tarde porque depende de `W` (devoluciones), que no
+existe hasta que el chofer cierra su día.
 
 `MOTIVO` se guarda en `Respuestas_Form` pero **no se espeja**, porque su columna (`AD`) cae
 dentro de esa zona. Si hace falta consultarlo, está en la pestaña de respuestas.
@@ -183,7 +187,7 @@ cerrada sino ofrecer sugerencias a partir de lo ya capturado, que corrige sin es
    juntar el envío inicial con el final del mismo chofer. El formulario registra su propia
    fecha de envío para ese fin.
 
-3. **`V` (Entregados) y `AB` (KM RECORRIDOS) tienen fórmula solo hasta la fila 2238**, donde
-   termina el dato. A diferencia de `AE`, `AF` y `AG`, que llegan hasta la 34085. Leticia va a
-   extenderlas para que se llenen solas; mientras no lo haga, quedarán vacías en los renglones
-   que agregue el espejo.
+3. **`AB` (KM RECORRIDOS) tiene fórmula solo hasta la fila 2238**, donde termina el dato. A
+   diferencia de `AE`, `AF` y `AG`, que llegan hasta la 34085. Leticia va a extenderla para que
+   se llene sola; mientras no lo haga, quedará vacía en los renglones que agregue el espejo.
+   (`V` ya no está en este caso: el espejo le escribe la fórmula.)

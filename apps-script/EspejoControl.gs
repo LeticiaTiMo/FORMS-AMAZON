@@ -77,6 +77,17 @@ function armarRenglon(datos) {
 }
 
 /**
+ * Entregados y lo que dependa de columnas de la tarde. Se escribe hasta que
+ * llega el envio final porque antes no existe el dato del que salen.
+ */
+function escribirFormulasFinales(control, filaControl) {
+  Object.keys(ESPEJO_FORMULAS_FINAL).forEach(function (letra) {
+    control.getRange(filaControl, columnaANumero(letra))
+      .setFormula(ESPEJO_FORMULAS_FINAL[letra].replace(/\{f\}/g, String(filaControl)));
+  });
+}
+
+/**
  * Escribe lo de la tarde sobre un renglon que ya existe, celda por celda:
  * las columnas del envio final no van seguidas y entre ellas hay formulas,
  * asi que un bloque las borraria.
@@ -88,6 +99,8 @@ function completarRenglon(control, filaControl, datos) {
     celda.setValue(valorParaControl(clave, datos[clave]));
     if (COLUMNAS_HORA.indexOf(clave) !== -1) celda.setNumberFormat(FORMATO_HORA_CONTROL);
   });
+
+  escribirFormulasFinales(control, filaControl);
 }
 
 function darFormatoHoras(control, primeraFila, cuantos) {
@@ -183,7 +196,12 @@ function vaciarAControl() {
         const filaControl = primeraFila + orden;
         respuestas.getRange(n.numeroFila, colFila).setValue(filaControl);
         respuestas.getRange(n.numeroFila, colInicial).setValue(marca);
-        if (n.tieneFinal) respuestas.getRange(n.numeroFila, colFinal).setValue(marca);
+
+        // Llego ya cerrado, asi que el renglon nace completo.
+        if (n.tieneFinal) {
+          escribirFormulasFinales(control, filaControl);
+          respuestas.getRange(n.numeroFila, colFinal).setValue(marca);
+        }
       });
     }
 

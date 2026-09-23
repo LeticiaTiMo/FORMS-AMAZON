@@ -155,3 +155,14 @@ const ESPEJO_FINAL = {
   VISITADO: 'Y',
   KM_FINAL: 'AA',
 };
+
+/**
+ * Formulas que se escriben junto con lo de la tarde, no antes: dependen de
+ * columnas que solo existen cuando llega el envio final.
+ *
+ * Va la formula y no el numero para que la hoja siga recalculando si alguien
+ * corrige un dato despues. {f} se sustituye por el renglon que toque.
+ */
+const ESPEJO_FORMULAS_FINAL = {
+  V: '=U{f}-W{f}',
+};
