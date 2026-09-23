@@ -193,6 +193,59 @@ function validarInicial(datos, catalogos) {
   return { errores: errores, datos: limpio };
 }
 
+// --- Resumen para compartir ---
+
+/**
+ * El texto que el chofer manda al grupo de WhatsApp.
+ *
+ * Lo arma el sistema y no el chofer, que es todo el punto: ya no puede quedar
+ * incompleto ni ambiguo, y le sirve de comprobante de que si reporto.
+ */
+function fechaLegible(fecha) {
+  return Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+}
+
+function resumenInicial(d, fecha) {
+  return [
+    'REPORTE INICIAL - ' + fechaLegible(fecha),
+    'Driver: ' + d.DRIVER,
+    'CEDIS: ' + d.CEDIS,
+    'Ruta: ' + d.ID_RUTA + ' - ' + d.ZONA_RUTA,
+    'Placas: ' + d.PLACAS,
+    d.TIENE_AUXILIAR === 'Sí' ? 'Auxiliar: ' + d.NOMBRE_AUXILIAR : 'Sin auxiliar',
+    '',
+    'Llegada BO: ' + d.HR_LLEGADA_BO,
+    'Entrada BO: ' + d.HR_ENTRADA_BO,
+    'Salida BOD: ' + d.HR_SALIDA_BOD,
+    'Primera entrega: ' + d.HR_PE,
+    '',
+    'SPR: ' + d.SPR,
+    'KM inicial: ' + d.KM_INICIAL,
+  ].join('\n');
+}
+
+function resumenFinal(driver, d, referencia, fecha) {
+  const lineas = [
+    'REPORTE FINAL - ' + fechaLegible(fecha),
+    'Driver: ' + driver,
+    '',
+    'Ultima entrega: ' + d.HR_UE,
+    'Entregados: ' + d.ENTREGADOS + ' de ' + referencia.SPR,
+    'Devoluciones: ' + d.DEVOLUCIONES + ' (no visitado ' + d.NO_VISITADO + ', visitado ' + d.VISITADO + ')',
+    '',
+    'KM final: ' + d.KM_FINAL,
+  ];
+
+  if (referencia.KM_INICIAL) {
+    lineas.push('Recorrido: ' + (d.KM_FINAL - referencia.KM_INICIAL) + ' km');
+  }
+  if (d.MOTIVO) {
+    lineas.push('', 'Motivo: ' + d.MOTIVO);
+  }
+
+  return lineas.join('\n');
+}
+
 // --- Escritura ---
 
 function asegurarPestanaRespuestas() {
@@ -330,7 +383,11 @@ function guardarInicial(datos) {
     const fila = COLUMNAS.map(function (c) { return limpio[c] === undefined ? '' : limpio[c]; });
     h.appendRow(fila);
 
-    return { ok: true, mensaje: 'Reporte inicial guardado. Gracias, ' + limpio.DRIVER + '.' };
+    return {
+      ok: true,
+      mensaje: 'Reporte inicial guardado. Gracias, ' + limpio.DRIVER + '.',
+      resumen: resumenInicial(limpio, ahora),
+    };
   } catch (e) {
     return { ok: false, errores: ['Error al guardar: ' + e.message] };
   } finally {
@@ -440,7 +497,11 @@ function guardarFinal(driver, datos) {
     });
     h.getRange(numeroFila, inicio + 1, 1, bloque.length).setValues([bloque]);
 
-    return { ok: true, mensaje: 'Reporte final guardado. Buen trabajo, ' + nombre + '.' };
+    return {
+      ok: true,
+      mensaje: 'Reporte final guardado. Buen trabajo, ' + nombre + '.',
+      resumen: resumenFinal(nombre, limpio, referencia, new Date()),
+    };
   } catch (e) {
     return { ok: false, errores: ['Error al guardar: ' + e.message] };
   } finally {

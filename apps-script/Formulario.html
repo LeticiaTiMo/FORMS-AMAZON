@@ -123,6 +123,20 @@
   button:disabled { background: #8b9aa7; cursor: default; }
   button.secundario { background: none; color: var(--azul-claro); font-weight: 600; font-size: 16px; padding: 12px; }
 
+  .boton-wa {
+    display: block;
+    width: 100%;
+    padding: 17px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    background: #128c7e;
+    border-radius: 12px;
+    text-align: center;
+    text-decoration: none;
+    margin-bottom: 12px;
+  }
+
   .aviso { padding: 14px; border-radius: 10px; margin-bottom: 18px; font-weight: 600; }
   .aviso.error { background: var(--error-fondo); color: var(--error); }
   .aviso.error ul { margin: 8px 0 0; padding-left: 20px; font-weight: 500; }
@@ -323,7 +337,9 @@
     <div class="marca">&check;</div>
     <h2>Reporte enviado</h2>
     <p id="textoOk"></p>
-    <button type="button" onclick="location.reload()">Volver al inicio</button>
+    <a id="botonWhatsApp" class="boton-wa oculto" target="_blank" rel="noopener">Compartir en WhatsApp</a>
+    <p class="pista" id="pistaWhatsApp">Se abre WhatsApp con el mensaje ya escrito. Elige el grupo y envía.</p>
+    <button type="button" class="secundario" onclick="location.reload()">Volver al inicio</button>
   </div>
 </main>
 
@@ -404,6 +420,23 @@
   function etiquetaDe(clave) {
     var l = $(clave).parentNode.querySelector('label');
     return l ? l.textContent.replace('*', '').trim() : clave;
+  }
+
+  /**
+   * Deja listo el boton para compartir al grupo. wa.me abre WhatsApp con el
+   * mensaje escrito, pero es el chofer quien elige el grupo y envia: no existe
+   * forma oficial de publicar en un grupo sin que alguien lo mande.
+   */
+  function prepararWhatsApp(resumen) {
+    var boton = $('botonWhatsApp');
+    if (!resumen) {
+      boton.classList.add('oculto');
+      $('pistaWhatsApp').classList.add('oculto');
+      return;
+    }
+    boton.href = 'https://wa.me/?text=' + encodeURIComponent(resumen);
+    boton.classList.remove('oculto');
+    $('pistaWhatsApp').classList.remove('oculto');
   }
 
   // --- Arranque ---
@@ -518,6 +551,7 @@
         if (res.ok) {
           esconder('formaInicial');
           $('textoOk').textContent = res.mensaje + ' Al terminar la ruta vuelve a abrir esta liga para el reporte final.';
+          prepararWhatsApp(res.resumen);
           mostrar('pantallaOk');
           window.scrollTo(0, 0);
         } else {
@@ -639,6 +673,7 @@
         if (res.ok) {
           esconder('formaFinal');
           $('textoOk').textContent = res.mensaje;
+          prepararWhatsApp(res.resumen);
           mostrar('pantallaOk');
           window.scrollTo(0, 0);
         } else {

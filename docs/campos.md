@@ -82,6 +82,19 @@ desglose**. El 82% de las veces nadie lo capturó. Volverlo obligatorio cierra e
 
 ---
 
+## Compartir al grupo de WhatsApp
+
+Al terminar de enviar, el chofer ve un botón **Compartir en WhatsApp**. Se le abre WhatsApp con
+el resumen de su reporte ya escrito; él elige el grupo y envía.
+
+**No se publica solo, y no es por falta de ganas:** la API oficial de WhatsApp solo manda
+mensajes a números individuales, nunca a grupos. Publicar en un grupo sin intervención humana
+exige librerías no oficiales, un servidor encendido todo el día y un número que Meta puede
+bloquear sin aviso.
+
+El texto lo arma el sistema, que es lo que importa: ya no puede salir incompleto ni ambiguo
+como en los mensajes escritos a mano, y le sirve al chofer de comprobante de que sí reportó.
+
 ## El espejo a BD_AMAZON
 
 El formulario escribe en `Respuestas_Form`. De ahí a la hoja de control pasa **cuando Leticia
