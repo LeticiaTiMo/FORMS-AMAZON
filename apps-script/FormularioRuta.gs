@@ -10,15 +10,37 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+/**
+ * Acepta el identificador pelado o la direccion completa de la hoja. Copiar la
+ * direccion entera, o dejarle pedazos como "d/" y "/edit", es el error mas
+ * comun al configurar la propiedad, y el mensaje de Google no dice como
+ * corregirlo.
+ */
+function idDeHoja(valor) {
+  const texto = String(valor || '').trim();
+  const enDireccion = texto.match(/(?:^|\/)d\/([a-zA-Z0-9-_]+)/);
+  return enDireccion ? enDireccion[1] : texto;
+}
+
 function hoja() {
-  const id = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPIEDAD_ID_HOJA);
-  if (!id) {
+  const guardado = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPIEDAD_ID_HOJA);
+  if (!guardado) {
     throw new Error(
       'Falta configurar ' + CONFIG.PROPIEDAD_ID_HOJA + ' en Propiedades del Script. ' +
       'Ver docs/instalacion.md'
     );
   }
-  return SpreadsheetApp.openById(id);
+
+  const id = idDeHoja(guardado);
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (e) {
+    throw new Error(
+      'No se pudo abrir la hoja con el identificador "' + id + '". Revisa que ' +
+      CONFIG.PROPIEDAD_ID_HOJA + ' tenga el pedazo que va entre /d/ y /edit de la ' +
+      'direccion de la hoja de calculo, no la direccion del proyecto de Apps Script.'
+    );
+  }
 }
 
 function pestana(nombre) {
