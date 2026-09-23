@@ -225,12 +225,18 @@ cuadra y en naranja cuando no, sin tener que intentar enviar.
 
 ## Paso 7 · Ponerlo en el celular del chofer
 
-Que abra la liga en el navegador del teléfono y:
+Que abra la liga **en el navegador del teléfono**, no tocándola desde el mensaje de WhatsApp, y:
 
 - **Android (Chrome)**: menú de tres puntos → *Agregar a pantalla principal*.
 - **iPhone (Safari)**: botón de compartir → *Agregar a pantalla de inicio*.
 
 Queda como un ícono más, igual que cualquier aplicación.
+
+> **Este paso no es un lujo.** Abrir la liga tocándola dentro de WhatsApp la manda al navegador
+> interno de esa aplicación, que a veces falla al cargar páginas de Google. Con el acceso
+> directo instalado, la pantalla abre sola y ese problema desaparece.
+>
+> Vale la pena decirlo en la capacitación: *entras por el ícono, no por el mensaje*.
 
 ---
 
@@ -264,3 +270,17 @@ Si dejas *Versión* en la que ya estaba, el botón funciona pero no publica nada
 | `Los permisos especificados no son suficientes para llamar a DriveApp...` | El `appsscript.json` declara una lista fija de permisos que no cubre a las automatizaciones que ya existían. Quítale el bloque `oauthScopes` para que Apps Script los deduzca solo |
 | `ReferenceError: <algo> is not defined` | Se borró código que ya estaba, casi siempre el de `Código.gs`. Recupéralo del Apps Script de la hoja original, o con **Archivo → Ver historial de versiones** |
 | Guardaste un cambio y la liga sigue igual | Falta publicar una versión nueva. Guardar no basta: la liga sirve una versión congelada. Ver *Cuando haya cambios en el código* |
+| `No se pudo abrir el archivo en este momento` | Le pasa a quien tiene **varias cuentas de Google** en el teléfono, típicamente tú o Miguel. Ver abajo |
+
+### "No se pudo abrir el archivo en este momento"
+
+Le pasa a quien administra la hoja, no a los choferes. Con varias cuentas de Google iniciadas,
+Chrome manda la petición con la cuenta equivocada.
+
+**Para comprobar que es eso:** abre la liga en una ventana de incógnito. Si ahí funciona, está
+confirmado — y de paso comprobaste que los choferes no lo van a sufrir, porque incógnito es
+exactamente el estado sin sesión en el que ellos entran.
+
+Se resuelve dejando como cuenta predeterminada de Chrome la dueña de la hoja, o entrando por el
+acceso directo de la pantalla de inicio, que abre como aplicación sin pasar por la sesión del
+navegador.
