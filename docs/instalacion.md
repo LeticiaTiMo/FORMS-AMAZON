@@ -53,8 +53,10 @@ estos cuatro archivos:
 |---|---|
 | `appsscript.json` | `apps-script/appsscript.json` |
 | `Config.gs` | `apps-script/Config.gs` |
-| `Codigo.gs` | `apps-script/Codigo.gs` |
+| `FormularioRuta.gs` | `apps-script/FormularioRuta.gs` |
 | `Formulario.html` | `apps-script/Formulario.html` |
+
+Los tres últimos son **archivos nuevos**. Ninguno reemplaza algo que ya exista.
 
 **Cómo copiar cada uno:** ábrelo en VSCode, `Ctrl + A` para seleccionar todo, `Ctrl + C` para
 copiar. En el editor de Apps Script, `Ctrl + A` para seleccionar lo que haya y `Ctrl + V` para
@@ -63,26 +65,29 @@ pegar encima.
 `Formulario.html` pasa de las 700 líneas. `Ctrl + A` lo toma completo aunque no quepa en
 pantalla — no hace falta bajarle con el ratón.
 
-> ### Antes de pegar nada: revisa si el proyecto ya tiene código
+> ### No borres nada de lo que ya esté ahí
 >
-> La hoja de control puede traer automatizaciones que alguien escribió antes. En este caso
-> traía un archivo **`enviarR_SEMANAL`**, que usa Google Drive.
+> La hoja puede traer automatizaciones que alguien escribió antes. Esta traía
+> **`enviarR_SEMANAL`**, que usa Google Drive y depende de una función `crearMenu()` que vivía
+> en `Código.gs`.
 >
-> **No borres ningún archivo que ya esté ahí.** Solo se agregan los nuevos. Y antes de tocar
-> `appsscript.json`, guarda una copia de lo que tenga: ese archivo declara los permisos que
-> necesita **todo** el proyecto, no solo el formulario, y borrar los que ya estaban deja sin
-> funcionar lo que dependía de ellos.
+> **`Código.gs` se deja tal cual.** Por eso el archivo de este repositorio se llama
+> `FormularioRuta.gs` y no `Codigo.gs`: `Código.gs` es el nombre que Google crea por defecto,
+> así que ahí casi siempre hay algo. Vaciarlo rompe lo que dependía de sus funciones, y el
+> síntoma aparece después, en otro archivo:
+>
+> ```
+> ReferenceError: crearMenu is not defined
+> ```
 
-Para cada uno:
+Cómo crear cada uno:
 
-- **`appsscript.json`** ya existe. Copia su contenido a un lado antes de reemplazarlo. Si el
-  proyecto tiene otras automatizaciones, revisa el apartado *Si el proyecto ya tenía código*
-  más abajo.
-- **`Codigo.gs`**: si ya existe un `Código.gs` **vacío o solo con la función de ejemplo**
-  `myFunction`, bórralo y pega el contenido. Si tiene código de verdad, **no lo toques**: crea
-  un archivo nuevo con el botón **+** y ponle otro nombre.
+- **`appsscript.json`** ya existe. Es el único que se reemplaza. Copia su contenido a un lado
+  antes, y revisa el apartado *Si el proyecto ya tenía código* más abajo.
 - **`Config.gs`**: botón **+** junto a *Archivos* → **Secuencia de comandos** → nómbralo
   `Config` (el editor le pone la terminación `.gs` solo).
+- **`FormularioRuta.gs`**: botón **+** → **Secuencia de comandos** → nómbralo
+  `FormularioRuta`.
 - **`Formulario.html`**: botón **+** → **HTML** → nómbralo `Formulario`.
 
 Guarda con el ícono del disquete.
@@ -216,3 +221,4 @@ choferes siga siendo la misma:
 | La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `STATUS` |
 | Los choferes ven una pantalla de inicio de sesión | En el paso 5, *Quién tiene acceso* no quedó en **Cualquier usuario** |
 | `Los permisos especificados no son suficientes para llamar a DriveApp...` | El `appsscript.json` declara una lista fija de permisos que no cubre a las automatizaciones que ya existían. Quítale el bloque `oauthScopes` para que Apps Script los deduzca solo |
+| `ReferenceError: <algo> is not defined` | Se borró código que ya estaba, casi siempre el de `Código.gs`. Recupéralo del Apps Script de la hoja original, o con **Archivo → Ver historial de versiones** |
