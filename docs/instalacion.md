@@ -208,11 +208,18 @@ Queda como un ícono más, igual que cualquier aplicación.
 
 ## Cuando haya cambios en el código
 
-No se crea una implementación nueva. Se actualiza la que ya existe, para que la liga de los
-choferes siga siendo la misma:
+**Guardar no basta.** La liga de los choferes sirve una *versión congelada* del proyecto, no lo
+que está guardado en el editor. Mientras no publiques una versión nueva, ellos siguen viendo la
+anterior aunque tú ya veas el cambio en el código.
 
-**Implementar → Administrar implementaciones →** ícono de lápiz **→** en *Versión* elige
-**Nueva versión → Implementar**.
+No se crea una implementación nueva, se actualiza la que ya existe, para que la liga no cambie:
+
+1. **Implementar → Administrar implementaciones**
+2. Ícono de **lápiz** (editar)
+3. En el desplegable **Versión**, elige **Nueva versión** ← este es el paso que se salta fácil
+4. **Implementar**
+
+Si dejas *Versión* en la que ya estaba, el botón funciona pero no publica nada nuevo.
 
 ---
 
@@ -224,6 +231,8 @@ choferes siga siendo la misma:
 | `No existe la pestania "OPERADORES"` | El nombre de la pestaña cambió |
 | `OPERADORES no tiene la columna...` | Falta el encabezado `NOMBRE DEL DRIVER` en la fila 1 |
 | La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `STATUS` |
-| Los choferes ven una pantalla de inicio de sesión | En el paso 5, *Quién tiene acceso* no quedó en **Cualquier usuario** |
+| Los choferes ven una pantalla de inicio de sesión | En el Paso 4, *Quién tiene acceso* no quedó en **Cualquier usuario** |
+| `Illegal spreadsheet id or key` | `ID_HOJA` trae la dirección del proyecto de Apps Script, no la de la hoja. Ver Paso 3 |
 | `Los permisos especificados no son suficientes para llamar a DriveApp...` | El `appsscript.json` declara una lista fija de permisos que no cubre a las automatizaciones que ya existían. Quítale el bloque `oauthScopes` para que Apps Script los deduzca solo |
 | `ReferenceError: <algo> is not defined` | Se borró código que ya estaba, casi siempre el de `Código.gs`. Recupéralo del Apps Script de la hoja original, o con **Archivo → Ver historial de versiones** |
+| Guardaste un cambio y la liga sigue igual | Falta publicar una versión nueva. Guardar no basta: la liga sirve una versión congelada. Ver *Cuando haya cambios en el código* |
