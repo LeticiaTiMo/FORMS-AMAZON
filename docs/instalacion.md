@@ -22,8 +22,14 @@ no se rompe, nada más deja de filtrar.
 
 1. Abre la hoja **CONTROL AMAZON 2026** en Google Sheets.
 2. En el menú de arriba: **Extensiones → Apps Script**.
-3. Se abre una pestaña nueva. Arriba a la izquierda dice *Proyecto sin título* — haz clic ahí
-   y ponle **Formulario de ruta**.
+
+Se abre una pestaña nueva. Sabes que estás en el lugar correcto si ves una **barra lateral
+izquierda con íconos** (`<>` de Editor, un engrane de Configuración, un reloj) y una lista de
+archivos donde aparece **`Código.gs`**.
+
+> **Ponerle nombre al proyecto es opcional.** Si arriba a la izquierda dice *Proyecto sin
+> título*, puedes hacer clic y cambiarlo por `Formulario de ruta`. Si dice otra cosa o no lo
+> encuentras, déjalo así: el nombre no afecta en nada el funcionamiento.
 
 ---
 
