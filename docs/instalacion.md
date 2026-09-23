@@ -36,38 +36,44 @@ archivos donde aparece **`Código.gs`**.
 
 ---
 
-## Paso 2 · Agregar los tres archivos
+## Paso 2 · Agregar los cuatro archivos
 
 El contenido sale de la carpeta **`apps-script/`** de este proyecto, la que tienes abierta en
-VSCode. Son **tres archivos nuevos**, y ninguno reemplaza nada de lo que ya exista:
+VSCode. Son **cuatro archivos nuevos**, y ninguno reemplaza nada de lo que ya exista:
 
-| Archivo que vas a crear | De dónde se copia |
+| Archivo que vas a crear | Para qué sirve |
 |---|---|
-| `Config.gs` | `apps-script/Config.gs` |
-| `FormularioRuta.gs` | `apps-script/FormularioRuta.gs` |
-| `Formulario.html` | `apps-script/Formulario.html` |
+| `Config.gs` | Los ajustes: pestañas, catálogos y a qué columna va cada dato |
+| `FormularioRuta.gs` | La pantalla que usan los choferes y el guardado |
+| `EspejoControl.gs` | Pasar los reportes a `BD_AMAZON` |
+| `Formulario.html` | El diseño de la pantalla |
 
 > **`appsscript.json` no se toca.** Ese archivo declara los permisos de *todo* el proyecto, y
 > reemplazarlo revoca los que necesitaban las automatizaciones que ya estaban. No hace falta:
 > los ajustes del formulario (*Ejecutar como* y *Quién tiene acceso*) se eligen en la ventana
-> de implementación del Paso 4.
+> de implementación del Paso 5.
 >
 > El `apps-script/appsscript.json` de este repositorio queda solo como referencia, por si
 > alguna vez se monta el formulario en un proyecto vacío.
 
 ### Cómo crear cada uno
 
-Para los tres es el mismo movimiento, con el botón **+** que está junto a la palabra
+Para los cuatro es el mismo movimiento, con el botón **+** que está junto a la palabra
 *Archivos*, arriba en la lista de la izquierda:
 
 | Archivo | Tipo que eliges en el **+** | Nombre que le pones |
 |---|---|---|
 | `Config.gs` | Secuencia de comandos | `Config` |
 | `FormularioRuta.gs` | Secuencia de comandos | `FormularioRuta` |
+| `EspejoControl.gs` | Secuencia de comandos | `EspejoControl` |
 | `Formulario.html` | HTML | `Formulario` |
 
-El editor agrega la terminación (`.gs`, `.html`) solo. **El nombre importa**: el código busca a
-`Formulario` por su nombre, así que un dedazo ahí lo rompe.
+**Escribe el nombre sin la terminación**: el editor le agrega `.gs` o `.html` solo. Si escribes
+`EspejoControl.gs`, el archivo termina llamándose `EspejoControl.gs.gs`. No rompe nada, pero se
+ve raro.
+
+El nombre de `Formulario` sí importa: el código lo busca por nombre, así que un dedazo ahí lo
+rompe.
 
 Ya creado el archivo, ábrelo en VSCode, `Ctrl + A`, `Ctrl + C`, y pégalo en el archivo vacío
 que acabas de crear en Apps Script.
@@ -144,7 +150,29 @@ cualquiera podría verlo. Se guarda aparte:
 
 ---
 
-## Paso 4 · Publicar la pantalla
+## Paso 4 · Poner el menú para vaciar al control
+
+El formulario escribe en `Respuestas_Form`. De ahí a `BD_AMAZON` pasa cuando tú lo decides,
+desde un menú de la hoja. Para que ese menú aparezca:
+
+1. Barra lateral izquierda → ícono de **reloj** (*Activadores*).
+2. Abajo a la derecha: **Agregar activador**.
+3. Llénalo así:
+   - *Función que se ejecutará*: **`crearMenuFormulario`**
+   - *Implementación*: **Head**
+   - *Origen del evento*: **Desde hoja de cálculo**
+   - *Tipo de evento*: **Al abrir**
+4. **Guardar**. Puede pedirte autorizar de nuevo; acepta.
+
+Recarga la hoja de cálculo. Junto a *Ayuda* debe aparecer el menú **Formulario de ruta**.
+
+> Se usa un activador en lugar de agregar una línea al `Código.gs` que ya existe, porque un
+> proyecto no admite dos funciones `onOpen`: la segunda pisa a la primera y el menú que ya
+> estaba deja de salir. El activador convive con lo que haya.
+
+---
+
+## Paso 5 · Publicar la pantalla
 
 1. Busca el **botón azul de la esquina superior derecha** del editor, junto a *Ejecutar* y
    *Depurar*. Dice **Implementar** (a veces *Desplegar*). Haz clic y elige
@@ -167,7 +195,7 @@ cualquiera podría verlo. Se guarda aparte:
 
 ---
 
-## Paso 5 · Probarlo
+## Paso 6 · Probarlo
 
 1. Abre la liga en tu celular.
 2. Elige un nombre de la lista. Como esa persona no ha mandado nada hoy, te debe salir el
@@ -195,7 +223,7 @@ cuadra y en naranja cuando no, sin tener que intentar enviar.
 
 ---
 
-## Paso 6 · Ponerlo en el celular del chofer
+## Paso 7 · Ponerlo en el celular del chofer
 
 Que abra la liga en el navegador del teléfono y:
 
@@ -231,7 +259,7 @@ Si dejas *Versión* en la que ya estaba, el botón funciona pero no publica nada
 | `No existe la pestania "OPERADORES"` | El nombre de la pestaña cambió |
 | `OPERADORES no tiene la columna...` | Falta el encabezado `NOMBRE DEL DRIVER` en la fila 1 |
 | La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `STATUS` |
-| Los choferes ven una pantalla de inicio de sesión | En el Paso 4, *Quién tiene acceso* no quedó en **Cualquier usuario** |
+| Los choferes ven una pantalla de inicio de sesión | En el Paso 5, *Quién tiene acceso* no quedó en **Cualquier usuario** |
 | `Illegal spreadsheet id or key` | `ID_HOJA` trae la dirección del proyecto de Apps Script, no la de la hoja. Ver Paso 3 |
 | `Los permisos especificados no son suficientes para llamar a DriveApp...` | El `appsscript.json` declara una lista fija de permisos que no cubre a las automatizaciones que ya existían. Quítale el bloque `oauthScopes` para que Apps Script los deduzca solo |
 | `ReferenceError: <algo> is not defined` | Se borró código que ya estaba, casi siempre el de `Código.gs`. Recupéralo del Apps Script de la hoja original, o con **Archivo → Ver historial de versiones** |
