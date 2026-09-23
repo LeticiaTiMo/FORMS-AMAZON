@@ -80,7 +80,8 @@ El código no trae escrito el identificador de la hoja, porque el repositorio es
 cualquiera podría verlo. Se guarda aparte:
 
 1. Engrane (**Configuración del proyecto**) → hasta abajo, **Propiedades del script**.
-2. **Agregar propiedad del script**.
+2. Botón **Agregar propiedad de secuencia** (en algunas pantallas aparece como *Agregar
+   propiedad del script* — es el mismo).
 3. En *Propiedad* escribe: `ID_HOJA`
 4. En *Valor* pega el identificador de tu hoja. Es el pedazo largo que va en medio de la
    dirección:
@@ -89,7 +90,14 @@ cualquiera podría verlo. Se guarda aparte:
    docs.google.com/spreadsheets/d/AQUI_VA_EL_IDENTIFICADOR/edit
    ```
 
-5. **Guardar secuencia de comandos**.
+5. Guarda.
+
+> El nombre tiene que ser `ID_HOJA` tal cual, en mayúsculas y con guion bajo. Escrito distinto,
+> el formulario abre pero falla al leer la hoja.
+
+> Google traduce *script* unas veces como "secuencia de comandos" y otras como "script", así
+> que los textos de los botones varían entre pantallas. Si uno no coincide con esta guía, busca
+> el que se le parezca.
 
 ---
 
