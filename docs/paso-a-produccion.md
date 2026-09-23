@@ -85,6 +85,13 @@ para no confundirlas, o borra esa implementación.
 
 ## La prueba, antes de repartir nada
 
+> **Publica versión nueva antes de probar nada.** Guardar el código no cambia lo que sirve la
+> liga: eso solo pasa al publicar. Es el tropiezo que más veces se repitió durante la
+> instalación en la copia, y siempre se ve igual — pruebas un cambio, no aparece, y parece que
+> el código está mal cuando en realidad ni siquiera se está ejecutando.
+>
+> **Implementar → Administrar implementaciones →** lápiz → *Versión*: **Nueva versión**.
+
 Con la hoja real ya conectada, haz el ciclo completo **tú misma**:
 
 1. Manda un reporte **inicial** con tu nombre o el de alguien de confianza.
