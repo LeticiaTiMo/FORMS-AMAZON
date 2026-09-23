@@ -36,83 +36,66 @@ archivos donde aparece **`Código.gs`**.
 
 ---
 
-## Paso 2 · Mostrar el archivo de configuración
-
-1. En la barra de la izquierda, haz clic en el engrane (**Configuración del proyecto**).
-2. Marca la casilla **Mostrar el archivo de manifiesto "appsscript.json" en el editor**.
-
----
-
-## Paso 3 · Copiar los archivos
+## Paso 2 · Agregar los tres archivos
 
 El contenido sale de la carpeta **`apps-script/`** de este proyecto, la que tienes abierta en
-VSCode. Vuelve al ícono de **Editor** (`<>`) en la barra izquierda de Apps Script. Vas a dejar
-estos cuatro archivos:
+VSCode. Son **tres archivos nuevos**, y ninguno reemplaza nada de lo que ya exista:
 
-| Archivo en el editor | De dónde se copia |
+| Archivo que vas a crear | De dónde se copia |
 |---|---|
-| `appsscript.json` | `apps-script/appsscript.json` |
 | `Config.gs` | `apps-script/Config.gs` |
 | `FormularioRuta.gs` | `apps-script/FormularioRuta.gs` |
 | `Formulario.html` | `apps-script/Formulario.html` |
 
-Los tres últimos son **archivos nuevos**. Ninguno reemplaza algo que ya exista.
+> **`appsscript.json` no se toca.** Ese archivo declara los permisos de *todo* el proyecto, y
+> reemplazarlo revoca los que necesitaban las automatizaciones que ya estaban. No hace falta:
+> los ajustes del formulario (*Ejecutar como* y *Quién tiene acceso*) se eligen en la ventana
+> de implementación del Paso 4.
+>
+> El `apps-script/appsscript.json` de este repositorio queda solo como referencia, por si
+> alguna vez se monta el formulario en un proyecto vacío.
 
-**Cómo copiar cada uno:** ábrelo en VSCode, `Ctrl + A` para seleccionar todo, `Ctrl + C` para
-copiar. En el editor de Apps Script, `Ctrl + A` para seleccionar lo que haya y `Ctrl + V` para
-pegar encima.
+### Cómo crear cada uno
+
+Para los tres es el mismo movimiento, con el botón **+** que está junto a la palabra
+*Archivos*, arriba en la lista de la izquierda:
+
+| Archivo | Tipo que eliges en el **+** | Nombre que le pones |
+|---|---|---|
+| `Config.gs` | Secuencia de comandos | `Config` |
+| `FormularioRuta.gs` | Secuencia de comandos | `FormularioRuta` |
+| `Formulario.html` | HTML | `Formulario` |
+
+El editor agrega la terminación (`.gs`, `.html`) solo. **El nombre importa**: el código busca a
+`Formulario` por su nombre, así que un dedazo ahí lo rompe.
+
+Ya creado el archivo, ábrelo en VSCode, `Ctrl + A`, `Ctrl + C`, y pégalo en el archivo vacío
+que acabas de crear en Apps Script.
 
 `Formulario.html` pasa de las 700 líneas. `Ctrl + A` lo toma completo aunque no quepa en
-pantalla — no hace falta bajarle con el ratón.
+pantalla — no hace falta bajarle con el ratón. Ojo: el archivo nuevo ya trae unas líneas de
+ejemplo; bórralas antes de pegar.
 
-> ### No borres nada de lo que ya esté ahí
+Guarda con el ícono del disquete.
+
+> ### No borres nada de lo que ya estaba
 >
-> La hoja puede traer automatizaciones que alguien escribió antes. Esta traía
-> **`enviarR_SEMANAL`**, que usa Google Drive y depende de una función `crearMenu()` que vivía
-> en `Código.gs`.
+> **`Código.gs` se deja tal cual, aunque parezca que sobra.** Esta hoja traía ahí una función
+> `crearMenu()` de la que dependía `enviarR_SEMANAL`.
 >
-> **`Código.gs` se deja tal cual.** Por eso el archivo de este repositorio se llama
-> `FormularioRuta.gs` y no `Codigo.gs`: `Código.gs` es el nombre que Google crea por defecto,
-> así que ahí casi siempre hay algo. Vaciarlo rompe lo que dependía de sus funciones, y el
-> síntoma aparece después, en otro archivo:
+> Vaciarlo rompe lo que usaba sus funciones, y lo peor es que el síntoma no aparece donde lo
+> causaste, sino después y en otro archivo:
 >
 > ```
 > ReferenceError: crearMenu is not defined
 > ```
-
-Cómo crear cada uno:
-
-- **`appsscript.json`** ya existe. Es el único que se reemplaza. Copia su contenido a un lado
-  antes, y revisa el apartado *Si el proyecto ya tenía código* más abajo.
-- **`Config.gs`**: botón **+** junto a *Archivos* → **Secuencia de comandos** → nómbralo
-  `Config` (el editor le pone la terminación `.gs` solo).
-- **`FormularioRuta.gs`**: botón **+** → **Secuencia de comandos** → nómbralo
-  `FormularioRuta`.
-- **`Formulario.html`**: botón **+** → **HTML** → nómbralo `Formulario`.
-
-Guarda con el ícono del disquete.
-
-### Si el proyecto ya tenía código
-
-El `appsscript.json` de este repositorio **no declara permisos** a propósito. Sin esa lista,
-Apps Script los deduce solo, revisando todos los archivos del proyecto: los que necesita el
-formulario y los que necesitan las automatizaciones que ya estaban.
-
-Si en vez de eso se declara una lista fija, los permisos que no aparezcan ahí se revocan, y las
-automatizaciones viejas empiezan a fallar con mensajes como:
-
-```
-Los permisos especificados no son suficientes para llamar a DriveApp.getFolderById
-```
-
-Revisa también la **zona horaria**. La de este archivo es `America/Monterrey`. Si el proyecto
-traía otra, las fechas de las automatizaciones existentes se recorren.
-
-> El nombre de cada archivo importa: el código los busca por nombre.
+>
+> Por eso el archivo de este repositorio se llama `FormularioRuta.gs` y no `Codigo.gs`:
+> `Código.gs` es el nombre que Google crea por defecto, así que ahí casi siempre hay algo.
 
 ---
 
-## Paso 4 · Decirle cuál es la hoja
+## Paso 3 · Decirle cuál es la hoja
 
 El código no trae escrito el identificador de la hoja, porque el repositorio es público y
 cualquiera podría verlo. Se guarda aparte:
@@ -139,7 +122,7 @@ cualquiera podría verlo. Se guarda aparte:
 
 ---
 
-## Paso 5 · Publicar la pantalla
+## Paso 4 · Publicar la pantalla
 
 1. Busca el **botón azul de la esquina superior derecha** del editor, junto a *Ejecutar* y
    *Depurar*. Dice **Implementar** (a veces *Desplegar*). Haz clic y elige
@@ -162,7 +145,7 @@ cualquiera podría verlo. Se guarda aparte:
 
 ---
 
-## Paso 6 · Probarlo
+## Paso 5 · Probarlo
 
 1. Abre la liga en tu celular.
 2. Elige un nombre de la lista. Como esa persona no ha mandado nada hoy, te debe salir el
@@ -190,7 +173,7 @@ cuadra y en naranja cuando no, sin tener que intentar enviar.
 
 ---
 
-## Paso 7 · Ponerlo en el celular del chofer
+## Paso 6 · Ponerlo en el celular del chofer
 
 Que abra la liga en el navegador del teléfono y:
 
