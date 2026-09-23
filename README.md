@@ -81,6 +81,16 @@ a un chofer se edita esa hoja, no el código.
 
 ---
 
+## Documentación
+
+| Documento | Para qué |
+|---|---|
+| [docs/paso-a-produccion.md](docs/paso-a-produccion.md) | Qué hacer para instalarlo en la hoja real |
+| [docs/instalacion.md](docs/instalacion.md) | La instalación paso a paso, con las fallas conocidas |
+| [docs/campos.md](docs/campos.md) | Qué pregunta el formulario y a qué columna va cada dato |
+
+---
+
 ## Calendario
 
 El documento original numera las semanas del 3 al 6. Aquí se listan en orden de ejecución.
