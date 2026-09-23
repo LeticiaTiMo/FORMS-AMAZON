@@ -63,15 +63,45 @@ pegar encima.
 `Formulario.html` pasa de las 700 líneas. `Ctrl + A` lo toma completo aunque no quepa en
 pantalla — no hace falta bajarle con el ratón.
 
+> ### Antes de pegar nada: revisa si el proyecto ya tiene código
+>
+> La hoja de control puede traer automatizaciones que alguien escribió antes. En este caso
+> traía un archivo **`enviarR_SEMANAL`**, que usa Google Drive.
+>
+> **No borres ningún archivo que ya esté ahí.** Solo se agregan los nuevos. Y antes de tocar
+> `appsscript.json`, guarda una copia de lo que tenga: ese archivo declara los permisos que
+> necesita **todo** el proyecto, no solo el formulario, y borrar los que ya estaban deja sin
+> funcionar lo que dependía de ellos.
+
 Para cada uno:
 
-- **`appsscript.json`** ya existe. Ábrelo, borra todo lo que tenga y pega el contenido nuevo.
-- **`Codigo.gs`** ya existe con el nombre `Código.gs`. Ábrelo, borra todo y pega el contenido.
+- **`appsscript.json`** ya existe. Copia su contenido a un lado antes de reemplazarlo. Si el
+  proyecto tiene otras automatizaciones, revisa el apartado *Si el proyecto ya tenía código*
+  más abajo.
+- **`Codigo.gs`**: si ya existe un `Código.gs` **vacío o solo con la función de ejemplo**
+  `myFunction`, bórralo y pega el contenido. Si tiene código de verdad, **no lo toques**: crea
+  un archivo nuevo con el botón **+** y ponle otro nombre.
 - **`Config.gs`**: botón **+** junto a *Archivos* → **Secuencia de comandos** → nómbralo
   `Config` (el editor le pone la terminación `.gs` solo).
 - **`Formulario.html`**: botón **+** → **HTML** → nómbralo `Formulario`.
 
 Guarda con el ícono del disquete.
+
+### Si el proyecto ya tenía código
+
+El `appsscript.json` de este repositorio **no declara permisos** a propósito. Sin esa lista,
+Apps Script los deduce solo, revisando todos los archivos del proyecto: los que necesita el
+formulario y los que necesitan las automatizaciones que ya estaban.
+
+Si en vez de eso se declara una lista fija, los permisos que no aparezcan ahí se revocan, y las
+automatizaciones viejas empiezan a fallar con mensajes como:
+
+```
+Los permisos especificados no son suficientes para llamar a DriveApp.getFolderById
+```
+
+Revisa también la **zona horaria**. La de este archivo es `America/Monterrey`. Si el proyecto
+traía otra, las fechas de las automatizaciones existentes se recorren.
 
 > El nombre de cada archivo importa: el código los busca por nombre.
 
@@ -185,3 +215,4 @@ choferes siga siendo la misma:
 | `OPERADORES no tiene la columna...` | Falta el encabezado `NOMBRE DEL DRIVER` en la fila 1 |
 | La lista de drivers sale vacía | Ningún renglón dice `ACTIVO` en la columna `STATUS` |
 | Los choferes ven una pantalla de inicio de sesión | En el paso 5, *Quién tiene acceso* no quedó en **Cualquier usuario** |
+| `Los permisos especificados no son suficientes para llamar a DriveApp...` | El `appsscript.json` declara una lista fija de permisos que no cubre a las automatizaciones que ya existían. Quítale el bloque `oauthScopes` para que Apps Script los deduzca solo |
