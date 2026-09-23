@@ -63,6 +63,9 @@ function reportesPendientes(h) {
  */
 const ULTIMA_COLUMNA_ESPEJO = 'AA';
 
+/** El mismo que ya traen las columnas de hora de BD_AMAZON. */
+const FORMATO_HORA_CONTROL = 'h:mm:ss AM/PM';
+
 /**
  * Donde termina el dato de verdad, que no es donde termina la hoja: las
  * formulas de AE a AG estan extendidas miles de filas por debajo del ultimo
@@ -135,10 +138,9 @@ function vaciarAControl() {
 
     control.getRange(primeraFila, 1, renglones.length, ancho).setValues(renglones);
 
-    const formatoHora = COLUMNAS_HORA.map(function (c) { return ESPEJO_VALORES[c]; });
-    formatoHora.forEach(function (letra) {
-      const col = columnaANumero(letra);
-      control.getRange(primeraFila, col, renglones.length, 1).setNumberFormat('HH:mm');
+    COLUMNAS_HORA.forEach(function (clave) {
+      const col = columnaANumero(ESPEJO_VALORES[clave]);
+      control.getRange(primeraFila, col, renglones.length, 1).setNumberFormat(FORMATO_HORA_CONTROL);
     });
 
     const marca = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
