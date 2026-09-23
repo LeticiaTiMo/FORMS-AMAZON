@@ -390,10 +390,12 @@ function guardarFinal(driver, datos) {
     const limpio = revision.datos;
     limpio.MARCA_TIEMPO_FINAL = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
 
-    // Los campos del envio final ocupan un bloque contiguo al final de COLUMNAS,
-    // asi que se escriben de una sola vez sin tocar lo que dejo el envio inicial.
+    // Los campos del envio final ocupan un bloque contiguo, asi que se escriben
+    // de una sola vez. El bloque termina en MOTIVO a proposito: despues viene
+    // ESPEJADO, que lleva el control de que ya paso a BD_AMAZON.
     const inicio = COLUMNAS.indexOf('MARCA_TIEMPO_FINAL');
-    const bloque = COLUMNAS.slice(inicio).map(function (c) {
+    const fin = COLUMNAS.indexOf('MOTIVO');
+    const bloque = COLUMNAS.slice(inicio, fin + 1).map(function (c) {
       return limpio[c] === undefined ? '' : limpio[c];
     });
     h.getRange(numeroFila, inicio + 1, 1, bloque.length).setValues([bloque]);

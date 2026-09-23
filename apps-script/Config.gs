@@ -11,6 +11,7 @@ const CONFIG = {
   PESTANAS: {
     respuestas: 'Respuestas_Form',
     operadores: 'OPERADORES',
+    control: 'BD_AMAZON',
   },
 
   OPERADORES: {
@@ -52,6 +53,8 @@ const COLUMNAS = [
   'VISITADO',
   'KM_FINAL',
   'MOTIVO',
+  // Control interno
+  'ESPEJADO',
 ];
 
 /** Campos que manda el envio inicial, con su validacion. */
@@ -88,3 +91,52 @@ const CAMPOS_FINAL = [
 
 /** Las horas deben ir en este orden cronologico. */
 const ORDEN_HORAS = ['HR_LLEGADA_BO', 'HR_ENTRADA_BO', 'HR_SALIDA_BOD', 'HR_PE'];
+
+/** Horas que se guardan como fraccion del dia, porque BD_AMAZON hace cuentas con ellas. */
+const COLUMNAS_HORA = [
+  'HR_LLEGADA_BO', 'HR_ENTRADA_BO', 'HR_SALIDA_BOD', 'HR_PE', 'HR_UE',
+];
+
+/**
+ * A que columna de BD_AMAZON va cada respuesta.
+ * Las que no aparecen aqui las captura Leticia a mano y el espejo no las toca:
+ * A SEMANA, B MES, C PERIODO, D CAPTURA, E FECHA, H Tipo de Vehiculo,
+ * L TIPO DE SERVICIO, M Tipo de ruta y AC FOTO RUTA.
+ */
+const ESPEJO_VALORES = {
+  CEDIS: 'F',
+  DRIVER: 'G',
+  TIENE_AUXILIAR: 'I',
+  NOMBRE_AUXILIAR: 'J',
+  PLACAS: 'K',
+  HR_LLEGADA_BO: 'N',
+  HR_ENTRADA_BO: 'O',
+  HR_SALIDA_BOD: 'P',
+  HR_PE: 'Q',
+  HR_UE: 'R',
+  ZONA_RUTA: 'S',
+  ID_RUTA: 'T',
+  SPR: 'U',
+  DEVOLUCIONES: 'W',
+  NO_VISITADO: 'X',
+  VISITADO: 'Y',
+  KM_INICIAL: 'Z',
+  KM_FINAL: 'AA',
+  MOTIVO: 'AD',
+};
+
+/**
+ * Columnas calculadas de BD_AMAZON. Se escribe la formula, no el resultado:
+ * si se escribiera el numero, la hoja dejaria de recalcular al corregir un dato
+ * y nadie lo notaria hasta que las cuentas dejaran de cuadrar.
+ *
+ * Por eso Entregados no esta en ESPEJO_VALORES aunque el chofer lo capture:
+ * en la hoja de control sale de SPR menos devoluciones.
+ */
+const ESPEJO_FORMULAS = {
+  V: '=U{f}-W{f}',
+  AB: '=AA{f}-Z{f}',
+  AE: '=IFERROR(V{f}/U{f},"")',
+  AF: '=V{f}/((R{f}-Q{f})*24)',
+  AG: '=IFERROR((R{f}-P{f})*24,"")',
+};
