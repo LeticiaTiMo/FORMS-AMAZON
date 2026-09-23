@@ -87,8 +87,16 @@ desglose**. El 82% de las veces nadie lo capturó. Volverlo obligatorio cierra e
 El formulario escribe en `Respuestas_Form`. De ahí a la hoja de control pasa **cuando Leticia
 lo decide**, con la opción *Vaciar reportes* del menú **Formulario de ruta**.
 
-Solo pasan los reportes **cerrados**, los que ya tienen envío final. Los que siguen a medias se
-quedan esperando, y el aviso al terminar dice cuántos son.
+### Trabaja en dos tiempos, igual que el chofer
+
+| Al vaciar | Qué hace |
+|---|---|
+| Un reporte que aún no está en el control | Crea el renglón con lo que haya, aunque solo tenga lo de la mañana |
+| Un reporte que ya estaba, y cuyo envío final llegó después | **Completa ese mismo renglón**, no crea otro |
+
+Así la ruta en curso ya se ve en el control desde temprano, y por la tarde se termina de llenar
+sola. La columna `FILA_CONTROL` de `Respuestas_Form` es lo que hace posible reencontrar el
+renglón: guarda en qué fila de `BD_AMAZON` quedó cada reporte.
 
 ### El espejo nunca pasa de la columna AA
 
@@ -145,9 +153,21 @@ Y cuesta: el histórico tiene **50 valores distintos para unas 20 zonas reales**
 `San Jerónimo`, `San Jeronimo` y `San Jemo`; `Cumbres` y `Cumbres ` con espacio al final;
 `San Pedro`, `San Pedro ` y `San Pédro`.
 
-Lo único que se hace al respecto es **recortar los espacios** de sobra al guardar, que son la
-causa de duplicados como `Cumbres` contra `Cumbres `. Lo demás queda a criterio de quien
-escribe.
+Sin quitarle la libertad de escribir, al guardar se acomoda el texto para que la misma zona no
+termine escrita de cinco formas:
+
+| Campo | Cómo queda | El chofer escribe | Se guarda |
+|---|---|---|---|
+| `Placas` | Todo en mayúsculas | `pl1989b` | `PL1989B` |
+| `ID Ruta` | Todo en mayúsculas | `cv13` | `CV13` |
+| `ZONA DE RUTA` | Inicial de cada palabra | `SAN JERONIMO` | `San Jeronimo` |
+
+En los tres se juntan además los espacios repetidos, que son la causa de duplicados como
+`Cumbres` contra `Cumbres `.
+
+Se hace **al capturar**, no al espejar, para que `Respuestas_Form` y la hoja de control digan
+lo mismo, y para que el chofer no tenga que cuidar mayúsculas escribiendo en el celular a media
+ruta.
 
 Si algún día el desorden estorba más que la flexibilidad, la salida no es volverlos lista
 cerrada sino ofrecer sugerencias a partir de lo ya capturado, que corrige sin estorbar.

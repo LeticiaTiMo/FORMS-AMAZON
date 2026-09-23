@@ -53,8 +53,11 @@ const COLUMNAS = [
   'VISITADO',
   'KM_FINAL',
   'MOTIVO',
-  // Control interno
-  'ESPEJADO',
+  // Control del espejo. FILA_CONTROL recuerda en que renglon de BD_AMAZON
+  // quedo el reporte, para completarlo por la tarde en vez de duplicarlo.
+  'FILA_CONTROL',
+  'ESPEJADO_INICIAL',
+  'ESPEJADO_FINAL',
 ];
 
 /** Campos que manda el envio inicial, con su validacion. */
@@ -89,6 +92,18 @@ const CAMPOS_FINAL = [
   { clave: 'MOTIVO',       etiqueta: 'Motivo',                 tipo: 'texto',  obligatorio: false },
 ];
 
+/**
+ * Como se acomoda cada texto libre antes de guardarlo.
+ * Se hace al capturar y no al espejar, para que Respuestas_Form y la hoja de
+ * control digan lo mismo, y para que el chofer no tenga que cuidar mayusculas
+ * escribiendo en el celular a media ruta.
+ */
+const NORMALIZAR = {
+  PLACAS: 'mayusculas',
+  ID_RUTA: 'mayusculas',
+  ZONA_RUTA: 'inicial',
+};
+
 /** Las horas deben ir en este orden cronologico. */
 const ORDEN_HORAS = ['HR_LLEGADA_BO', 'HR_ENTRADA_BO', 'HR_SALIDA_BOD', 'HR_PE'];
 
@@ -112,7 +127,7 @@ const COLUMNAS_HORA = [
  * MOTIVO se guarda en Respuestas_Form pero no se espeja, por la misma regla de
  * no tocar de AB en adelante.
  */
-const ESPEJO_VALORES = {
+const ESPEJO_INICIAL = {
   CEDIS: 'F',
   DRIVER: 'G',
   TIENE_AUXILIAR: 'I',
@@ -122,13 +137,21 @@ const ESPEJO_VALORES = {
   HR_ENTRADA_BO: 'O',
   HR_SALIDA_BOD: 'P',
   HR_PE: 'Q',
-  HR_UE: 'R',
   ZONA_RUTA: 'S',
   ID_RUTA: 'T',
   SPR: 'U',
+  KM_INICIAL: 'Z',
+};
+
+/**
+ * Lo que llega por la tarde y se escribe sobre el renglon que ya existe.
+ * No son columnas seguidas, y entre ellas hay formulas, asi que se escriben
+ * una por una en vez de como bloque.
+ */
+const ESPEJO_FINAL = {
+  HR_UE: 'R',
   DEVOLUCIONES: 'W',
   NO_VISITADO: 'X',
   VISITADO: 'Y',
-  KM_INICIAL: 'Z',
   KM_FINAL: 'AA',
 };

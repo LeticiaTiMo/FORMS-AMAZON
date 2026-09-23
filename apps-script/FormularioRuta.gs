@@ -106,12 +106,35 @@ function aEntero(v) {
   return parseInt(s, 10);
 }
 
+/**
+ * Acomoda el texto libre para que la hoja no termine con la misma zona escrita
+ * de cinco formas. Tambien junta los espacios repetidos, que son la causa de
+ * duplicados como "Cumbres" contra "Cumbres ".
+ */
+function normalizarTexto(valor, modo) {
+  const texto = String(valor == null ? '' : valor).trim().replace(/\s+/g, ' ');
+  if (!texto) return '';
+
+  if (modo === 'mayusculas') return texto.toUpperCase();
+
+  if (modo === 'inicial') {
+    return texto.toLowerCase().replace(/(^|\s)(\S)/g, function (todo, antes, letra) {
+      return antes + letra.toUpperCase();
+    });
+  }
+
+  return texto;
+}
+
 function validarInicial(datos, catalogos) {
   const errores = [];
   const limpio = {};
 
   CAMPOS_INICIAL.forEach(function (campo) {
-    limpio[campo.clave] = String(datos[campo.clave] == null ? '' : datos[campo.clave]).trim();
+    const bruto = String(datos[campo.clave] == null ? '' : datos[campo.clave]).trim();
+    limpio[campo.clave] = NORMALIZAR[campo.clave]
+      ? normalizarTexto(bruto, NORMALIZAR[campo.clave])
+      : bruto;
   });
 
   const auxiliar = limpio.TIENE_AUXILIAR === 'Sí';
@@ -178,10 +201,27 @@ function asegurarPestanaRespuestas() {
   if (!h) {
     h = libro.insertSheet(CONFIG.PESTANAS.respuestas);
   }
+
   if (h.getLastRow() === 0) {
     h.getRange(1, 1, 1, COLUMNAS.length).setValues([COLUMNAS]).setFontWeight('bold');
     h.setFrozenRows(1);
+    return h;
   }
+
+  // Si las columnas cambiaron, seguir escribiendo dejaria cada dato en la
+  // celda equivocada sin que nada avise. Mas vale detenerse aqui.
+  const encabezado = h.getRange(1, 1, 1, COLUMNAS.length).getValues()[0];
+  const desalineado = COLUMNAS.some(function (c, i) {
+    return String(encabezado[i] || '').trim() !== c;
+  });
+  if (desalineado) {
+    throw new Error(
+      'La pestaña ' + CONFIG.PESTANAS.respuestas + ' tiene las columnas de una versión ' +
+      'anterior. Bórrala para que se vuelva a crear; se pierden los reportes que tenga, ' +
+      'pero los que ya pasaron a ' + CONFIG.PESTANAS.control + ' siguen ahí.'
+    );
+  }
+
   return h;
 }
 
