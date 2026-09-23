@@ -42,7 +42,9 @@ archivos donde aparece **`Código.gs`**.
 
 ## Paso 3 · Copiar los archivos
 
-Vuelve al ícono de **Editor** (`<>`) en la barra izquierda. Vas a dejar estos cuatro archivos:
+El contenido sale de la carpeta **`apps-script/`** de este proyecto, la que tienes abierta en
+VSCode. Vuelve al ícono de **Editor** (`<>`) en la barra izquierda de Apps Script. Vas a dejar
+estos cuatro archivos:
 
 | Archivo en el editor | De dónde se copia |
 |---|---|
@@ -50,6 +52,13 @@ Vuelve al ícono de **Editor** (`<>`) en la barra izquierda. Vas a dejar estos c
 | `Config.gs` | `apps-script/Config.gs` |
 | `Codigo.gs` | `apps-script/Codigo.gs` |
 | `Formulario.html` | `apps-script/Formulario.html` |
+
+**Cómo copiar cada uno:** ábrelo en VSCode, `Ctrl + A` para seleccionar todo, `Ctrl + C` para
+copiar. En el editor de Apps Script, `Ctrl + A` para seleccionar lo que haya y `Ctrl + V` para
+pegar encima.
+
+`Formulario.html` pasa de las 700 líneas. `Ctrl + A` lo toma completo aunque no quepa en
+pantalla — no hace falta bajarle con el ratón.
 
 Para cada uno:
 
