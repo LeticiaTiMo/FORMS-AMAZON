@@ -160,6 +160,23 @@ distinguen por la columna `STATUS` (columna D), con los valores `ACTIVO` y `BAJA
 El desplegable muestra únicamente los `ACTIVO`. Sin ese filtro ofrecería 61 nombres de gente
 que ya no trabaja ahí.
 
+### Dar de alta o de baja a un chofer
+
+Se hace **en la hoja, no en el código**, y no hay que volver a publicar nada: el formulario lee
+`OPERADORES` cada vez que alguien lo abre.
+
+| | Qué hacer |
+|---|---|
+| **Alta** | Agregar el renglón con el nombre y poner `ACTIVO` en `STATUS` |
+| **Baja** | Cambiar su `STATUS` a `BAJA` |
+
+**Nunca borrar el renglón de una baja.** Ese nombre aparece en los reportes históricos de
+`BD_AMAZON`; si desaparece del catálogo se pierde la referencia de quién era.
+
+Y **no dar de baja a nadie a media jornada**: si ya mandó su reporte inicial pero no el final,
+al salir de la lista no podrá seleccionar su nombre para cerrar el día, y ese renglón se queda
+a medias.
+
 ### Zonas, rutas y placas
 
 `ZONA DE RUTA`, `ID Ruta` y `Placas` son **escritura libre**, porque cambian seguido y una
