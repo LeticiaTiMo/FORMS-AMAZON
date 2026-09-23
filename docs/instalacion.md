@@ -104,14 +104,36 @@ cualquiera podría verlo. Se guarda aparte:
 2. Botón **Agregar propiedad de secuencia** (en algunas pantallas aparece como *Agregar
    propiedad del script* — es el mismo).
 3. En *Propiedad* escribe: `ID_HOJA`
-4. En *Valor* pega el identificador de tu hoja. Es el pedazo largo que va en medio de la
-   dirección:
+4. En *Valor* va el identificador de la hoja. Para sacarlo, cámbiate a la pestaña del navegador
+   donde tienes **la hoja de cálculo** y mira su dirección:
 
    ```
-   docs.google.com/spreadsheets/d/AQUI_VA_EL_IDENTIFICADOR/edit
+   https://docs.google.com/spreadsheets/d/1ABCdef456GHI789jkl/edit#gid=0
+                                          └────────────────┘
+                                           solo este pedazo
    ```
+
+   Copia únicamente lo que va **entre `/d/` y `/edit`**.
 
 5. Guarda.
+
+> ### No confundas esta dirección con la del script
+>
+> El editor de Apps Script también tiene un código largo en su dirección, y **no sirve**:
+>
+> | | |
+> |---|---|
+> | ❌ No es | `script.google.com/u/0/home/projects/1Xzsox.../settings` |
+> | ✅ Sí es | el pedazo entre `/d/` y `/edit` de `docs.google.com/spreadsheets/d/...` |
+>
+> Si te equivocas, el formulario abre pero al cargar dice:
+>
+> ```
+> Illegal spreadsheet id or key
+> ```
+>
+> Se arregla corrigiendo el valor y guardando. No hay que volver a implementar: las propiedades
+> del script se leen en el momento.
 
 > El nombre tiene que ser `ID_HOJA` tal cual, en mayúsculas y con guion bajo. Escrito distinto,
 > el formulario abre pero falla al leer la hoja.
