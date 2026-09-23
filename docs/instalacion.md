@@ -4,6 +4,9 @@ Se hace una sola vez, desde la computadora. Toma unos 15 minutos.
 
 No hay que instalar ningún programa: todo pasa dentro de Google.
 
+> **Los títulos de los pasos describen qué se logra, no son nombres de botones.** Lo que hay
+> que buscar en pantalla va **en negritas** dentro de cada paso.
+
 ---
 
 ## Antes de empezar
@@ -103,8 +106,11 @@ cualquiera podría verlo. Se guarda aparte:
 
 ## Paso 5 · Publicar la pantalla
 
-1. Arriba a la derecha: **Implementar → Nueva implementación**.
-2. En el engrane junto a *Seleccionar tipo*, elige **Aplicación web**.
+1. Busca el **botón azul de la esquina superior derecha** del editor, junto a *Ejecutar* y
+   *Depurar*. Dice **Implementar** (a veces *Desplegar*). Haz clic y elige
+   **Nueva implementación**.
+2. En la ventana que se abre, haz clic en el **engrane** de la izquierda, junto a *Seleccionar
+   tipo*, y elige **Aplicación web**.
 3. Llena así:
    - *Descripción*: `Version 1 - envio inicial y final`
    - *Ejecutar como*: **Yo** (tu correo)
