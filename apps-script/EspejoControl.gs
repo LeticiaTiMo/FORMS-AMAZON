@@ -162,14 +162,27 @@ function vaciarAControl() {
   }
 }
 
-/** Lo que llama el menu. */
+/**
+ * Lo que llama el menu.
+ * Corriendo desde el editor no hay interfaz que avisar y getUi() truena, asi
+ * que en ese caso el resultado se manda al registro. El vaciado ya ocurrio
+ * para entonces: solo cambia por donde se entera uno.
+ */
 function vaciarReportesDesdeMenu() {
   const resultado = vaciarAControl();
-  SpreadsheetApp.getUi().alert(
-    resultado.ok ? 'Reportes vaciados' : 'No se pudo vaciar',
-    resultado.mensaje,
-    SpreadsheetApp.getUi().ButtonSet.OK
-  );
+
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      resultado.ok ? 'Reportes vaciados' : 'No se pudo vaciar',
+      resultado.mensaje,
+      ui.ButtonSet.OK
+    );
+  } catch (e) {
+    Logger.log(resultado.mensaje);
+  }
+
+  return resultado;
 }
 
 /**
