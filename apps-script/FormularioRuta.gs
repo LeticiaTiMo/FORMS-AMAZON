@@ -142,7 +142,7 @@ function validarInicial(datos, catalogos) {
   CAMPOS_INICIAL.forEach(function (campo) {
     const v = limpio[campo.clave];
     const obligatorio = campo.clave === 'NOMBRE_AUXILIAR' ? auxiliar : campo.obligatorio;
-    if (obligatorio && !v) errores.push('Falta ' + campo.etiqueta + '.');
+    if (obligatorio && !v) errores.push(('Falta ' + campo.etiqueta + '.').replace('..', '.'));
   });
 
   if (limpio.CEDIS && catalogos.cedis.indexOf(limpio.CEDIS) === -1) {
@@ -181,14 +181,12 @@ function validarInicial(datos, catalogos) {
     }
   }
 
-  const spr = aEntero(limpio.SPR);
-  const km = aEntero(limpio.KM_INICIAL);
-
-  if (limpio.SPR && spr === null) errores.push('SPR debe ser un número entero.');
-  if (limpio.KM_INICIAL && km === null) errores.push('KM inicial debe ser un número entero.');
-
-  if (spr !== null) limpio.SPR = spr;
-  if (km !== null) limpio.KM_INICIAL = km;
+  CAMPOS_INICIAL.forEach(function (campo) {
+    if (campo.tipo !== 'entero' || !limpio[campo.clave]) return;
+    const n = aEntero(limpio[campo.clave]);
+    if (n === null) errores.push(campo.etiqueta + ' debe ser un número entero.');
+    else limpio[campo.clave] = n;
+  });
 
   return { errores: errores, datos: limpio };
 }
@@ -220,6 +218,8 @@ function resumenInicial(d, fecha) {
     'Primera entrega: ' + d.HR_PE,
     '',
     'SPR: ' + d.SPR,
+    'CANT. PAR.: ' + d.CANT_PAR,
+    'CANT. UBI.: ' + d.CANT_UBI,
     'KM inicial: ' + d.KM_INICIAL,
   ].join('\n');
 }
@@ -263,10 +263,21 @@ function asegurarPestanaRespuestas() {
 
   // Si las columnas cambiaron, seguir escribiendo dejaria cada dato en la
   // celda equivocada sin que nada avise. Mas vale detenerse aqui.
-  const encabezado = h.getRange(1, 1, 1, COLUMNAS.length).getValues()[0];
-  const desalineado = COLUMNAS.some(function (c, i) {
-    return String(encabezado[i] || '').trim() !== c;
+  // La excepcion son columnas nuevas agregadas al final: los renglones viejos
+  // no se recorren, asi que basta con escribirles el encabezado.
+  const encabezado = h.getRange(1, 1, 1, COLUMNAS.length).getValues()[0]
+    .map(function (v) { return String(v || '').trim(); });
+  let existentes = encabezado.length;
+  while (existentes > 0 && !encabezado[existentes - 1]) existentes--;
+
+  const desalineado = COLUMNAS.slice(0, existentes).some(function (c, i) {
+    return encabezado[i] !== c;
   });
+  if (!desalineado && existentes < COLUMNAS.length) {
+    h.getRange(1, existentes + 1, 1, COLUMNAS.length - existentes)
+      .setValues([COLUMNAS.slice(existentes)])
+      .setFontWeight('bold');
+  }
   if (desalineado) {
     throw new Error(
       'La pestaña ' + CONFIG.PESTANAS.respuestas + ' tiene las columnas de una versión ' +

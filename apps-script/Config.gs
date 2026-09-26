@@ -58,6 +58,11 @@ const COLUMNAS = [
   'FILA_CONTROL',
   'ESPEJADO_INICIAL',
   'ESPEJADO_FINAL',
+  // Agregadas despues de que la hoja ya tenia reportes. Van al final para que
+  // los renglones viejos no se recorran; asegurarPestanaRespuestas() les pone
+  // encabezado solo. Se guardan aqui pero no se espejan a BD_AMAZON.
+  'CANT_PAR',
+  'CANT_UBI',
 ];
 
 /** Campos que manda el envio inicial, con su validacion. */
@@ -74,7 +79,9 @@ const CAMPOS_INICIAL = [
   { clave: 'ZONA_RUTA',       etiqueta: 'Zona de ruta',           tipo: 'texto',   obligatorio: true },
   { clave: 'ID_RUTA',         etiqueta: 'ID de ruta',             tipo: 'texto',   obligatorio: true },
   { clave: 'SPR',             etiqueta: 'SPR',                    tipo: 'entero',  obligatorio: true },
-  { clave: 'KM_INICIAL',      etiqueta: 'KM inicial',             tipo: 'entero',  obligatorio: true },
+  { clave: 'CANT_PAR',        etiqueta: 'CANT. PAR.',             tipo: 'entero',  obligatorio: true },
+  { clave: 'CANT_UBI',        etiqueta: 'CANT. UBI.',             tipo: 'entero',  obligatorio: true },
+  { clave: 'KM_INICIAL',     etiqueta: 'KM inicial',             tipo: 'entero',  obligatorio: true },
 ];
 
 /**
@@ -126,6 +133,8 @@ const COLUMNAS_HORA = [
  *
  * MOTIVO se guarda en Respuestas_Form pero no se espeja, por la misma regla de
  * no tocar de AB en adelante.
+ *
+ * CANT_PAR y CANT_UBI tampoco se espejan: se piden solo para Respuestas_Form.
  */
 const ESPEJO_INICIAL = {
   CEDIS: 'F',

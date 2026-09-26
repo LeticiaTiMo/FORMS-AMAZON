@@ -41,7 +41,9 @@ ya están al corriente. Así no tienen que recordar cuál les toca ni manejar do
 | 10 | ZONA DE RUTA | S | Texto libre | Sí | Ver *Zonas* abajo |
 | 11 | ID Ruta | T | Texto libre | Sí | Cambia seguido, por eso no es lista |
 | 12 | SPR | U | Entero | Sí | Mayor o igual a 0 |
-| 13 | KM INICIAL | Z | Entero | Sí | Mayor o igual a 0 |
+| 13 | CANT. PAR. | — | Entero | Sí | Solo en `Respuestas_Form`, no se espeja |
+| 14 | CANT. UBI. | — | Entero | Sí | Solo en `Respuestas_Form`, no se espeja |
+| 15 | KM INICIAL | Z | Entero | Sí | Mayor o igual a 0 |
 
 ## Envío final
 
@@ -129,6 +131,12 @@ existe hasta que el chofer cierra su día.
 
 `MOTIVO` se guarda en `Respuestas_Form` pero **no se espeja**, porque su columna (`AD`) cae
 dentro de esa zona. Si hace falta consultarlo, está en la pestaña de respuestas.
+
+`CANT. PAR.` y `CANT. UBI.` tampoco se espejan: se piden solo para tenerlas en
+`Respuestas_Form`. Se agregaron cuando la pestaña ya tenía reportes, así que sus columnas
+(`CANT_PAR`, `CANT_UBI`) van **al final**, después de `ESPEJADO_FINAL`, y el encabezado se
+escribe solo la primera vez que alguien abre el formulario. Los reportes anteriores quedan
+con esas dos celdas vacías.
 
 `FOTO RUTA` (col `AC`) quedó fuera de ambos envíos.
 
