@@ -63,6 +63,69 @@ function valorParaControl(clave, valor) {
   return COLUMNAS_HORA.indexOf(clave) !== -1 ? aFraccionDeDia(valor) : valor;
 }
 
+/**
+ * Para comparar contra las listas desplegables de BD_AMAZON sin que importen
+ * espacios invisibles, mayusculas o acentos: "Juan Pérez " y "juan perez"
+ * cuentan como el mismo nombre.
+ */
+function llaveComparacion(valor) {
+  return String(valor).replace(/[\s ]+/g, ' ').trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/** Lo que acepta la lista desplegable de una celda, o null si no tiene. */
+function valoresPermitidos(celda) {
+  const regla = celda.getDataValidation();
+  if (!regla) return null;
+
+  const tipo = regla.getCriteriaType();
+  const criterio = regla.getCriteriaValues();
+  const tipos = SpreadsheetApp.DataValidationCriteria;
+
+  if (tipo === tipos.VALUE_IN_LIST) return criterio[0].map(String);
+  if (tipo === tipos.VALUE_IN_RANGE) {
+    return criterio[0].getValues()
+      .reduce(function (todos, fila) { return todos.concat(fila); }, [])
+      .filter(function (v) { return !vacio(v); })
+      .map(String);
+  }
+  return null;
+}
+
+/**
+ * Las columnas de BD_AMAZON con lista desplegable rechazan el renglon entero
+ * si un texto no coincide letra por letra, y basta un espacio al final del
+ * nombre en OPERADORES para que pase. Aqui se cambia cada texto por como
+ * viene escrito en la lista, y si de verdad no esta, se avisa cual es.
+ */
+function ajustarAListas(control, primeraFila, renglones) {
+  Object.keys(ESPEJO_INICIAL).forEach(function (clave) {
+    const letra = ESPEJO_INICIAL[clave];
+    const columna = columnaANumero(letra);
+    const permitidos = valoresPermitidos(control.getRange(primeraFila, columna));
+    if (!permitidos) return;
+
+    const porLlave = {};
+    permitidos.forEach(function (p) { porLlave[llaveComparacion(p)] = p; });
+
+    renglones.forEach(function (renglon, n) {
+      const valor = renglon[columna - 1];
+      if (typeof valor !== 'string' || vacio(valor) || permitidos.indexOf(valor) !== -1) return;
+
+      const exacto = porLlave[llaveComparacion(valor)];
+      if (exacto === undefined) {
+        throw new Error(
+          '"' + valor + '" no está en la lista desplegable de la columna ' + letra + ' de ' +
+          CONFIG.PESTANAS.control + ' (renglón ' + (primeraFila + n) + '). Agrégalo a esa lista ' +
+          'o corrige el reporte en ' + CONFIG.PESTANAS.respuestas + ' y vuelve a vaciar. ' +
+          'No se pasó ningún reporte.'
+        );
+      }
+      renglon[columna - 1] = exacto;
+    });
+  });
+}
+
 function armarRenglon(datos) {
   const renglon = new Array(columnaANumero(ULTIMA_COLUMNA_ESPEJO)).fill('');
 
@@ -188,6 +251,7 @@ function vaciarAControl() {
     if (nuevos.length) {
       const primeraFila = primeraFilaLibre(control);
       const renglones = nuevos.map(function (n) { return armarRenglon(n.datos); });
+      ajustarAListas(control, primeraFila, renglones);
 
       control.getRange(primeraFila, 1, renglones.length, renglones[0].length).setValues(renglones);
       darFormatoHoras(control, primeraFila, renglones.length);
