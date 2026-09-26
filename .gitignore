@@ -33,3 +33,6 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Liga de clasp con el script de cada computadora (copia o produccion). No se comparte.
+.clasp.json
