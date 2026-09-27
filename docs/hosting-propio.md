@@ -105,6 +105,23 @@ activador, o hasta 30 sin él.
 
 ---
 
+## Respuestas_Form fuera del archivo principal
+
+`Respuestas_Form` puede vivir en la hoja vinculada al proyecto, por ejemplo "FORMULARIO AMAZON",
+en vez de en el archivo principal. `OPERADORES` y `BD_AMAZON` se quedan en el principal, y el
+vaciado sigue escribiendo ahí.
+
+Desde la hoja vinculada: **Formulario de ruta → Mover Respuestas_Form a este archivo…**
+
+La opción copia la pestaña, compara la copia celda por celda y solo entonces la borra del
+principal. Si algo no cuadra, no borra nada. Hasta que la mudanza termina, los reportes siguen
+llegando al principal, así que nunca quedan partidos entre los dos archivos.
+
+Si la hoja vinculada ya tiene su propio `Respuestas_Form` con renglones, la opción se detiene:
+hay que revisar cuál sirve y quitar la otra antes de volver a intentar.
+
+---
+
 ## Cuando cambie el código
 
 | Qué cambió | Qué hacer |

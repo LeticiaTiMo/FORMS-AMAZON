@@ -10,6 +10,9 @@ const CONFIG = {
   // La hoja vinculada al proyecto, donde vive la pestania PLACAS. No se llena
   // a mano: la apunta onOpen al abrir esa hoja. Ver hojaDelFormulario().
   PROPIEDAD_ID_HOJA_FORMULARIO: 'ID_HOJA_FORMULARIO',
+  // La pone moverRespuestasAEsteArchivo() al terminar. Mientras no exista,
+  // Respuestas_Form sigue en la hoja de datos. Ver libroDeRespuestas().
+  PROPIEDAD_RESPUESTAS_EN_FORMULARIO: 'RESPUESTAS_EN_FORMULARIO',
 
   PESTANAS: {
     respuestas: 'Respuestas_Form',

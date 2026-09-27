@@ -222,7 +222,9 @@ function vaciarAControl() {
   try {
     const libro = hoja();
 
-    const respuestas = libro.getSheetByName(CONFIG.PESTANAS.respuestas);
+    // Respuestas_Form puede vivir en la hoja del formulario; BD_AMAZON siempre
+    // esta en la de datos.
+    const respuestas = libroDeRespuestas().getSheetByName(CONFIG.PESTANAS.respuestas);
     if (!respuestas) {
       return { ok: false, mensaje: 'Todavía no hay reportes: falta la pestaña ' + CONFIG.PESTANAS.respuestas + '.' };
     }
@@ -375,6 +377,97 @@ function cambiarHojaDeDatos() {
 }
 
 /**
+ * Muda Respuestas_Form de la hoja de datos al archivo abierto (la hoja del
+ * formulario). BD_AMAZON se queda donde esta y el vaciado sigue llegando ahi.
+ *
+ * Copia, compara la copia celda por celda con el original y solo entonces
+ * borra el original. Si algo no cuadra, borra la copia y deja todo como
+ * estaba. El cambio de lugar se marca con una propiedad al final, para que
+ * ningun reporte caiga en un archivo mientras el historial sigue en el otro.
+ */
+function moverRespuestasAEsteArchivo() {
+  recordarHojaDelFormulario();
+  const ui = SpreadsheetApp.getUi();
+  const nombre = CONFIG.PESTANAS.respuestas;
+  const propiedades = PropertiesService.getScriptProperties();
+
+  if (propiedades.getProperty(CONFIG.PROPIEDAD_RESPUESTAS_EN_FORMULARIO) === 'SI') {
+    ui.alert('Ya estaba movida', nombre + ' ya vive en este archivo.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const destino = SpreadsheetApp.getActiveSpreadsheet();
+  const datos = hoja();
+  if (datos.getId() === destino.getId()) {
+    ui.alert('Nada que mover', 'Este archivo es la misma hoja de datos.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const original = datos.getSheetByName(nombre);
+  if (!original) {
+    ui.alert('Nada que mover', datos.getName() + ' no tiene la pestaña ' + nombre + '.', ui.ButtonSet.OK);
+    return;
+  }
+  const reportes = Math.max(original.getLastRow() - 1, 0);
+
+  // Una pestania con reportes aqui podria ser la de una prueba anterior o la
+  // buena: no se decide sola cual conservar.
+  const existente = destino.getSheetByName(nombre);
+  if (existente && existente.getLastRow() > 1) {
+    ui.alert(
+      'No se movió',
+      'Este archivo ya tiene una pestaña ' + nombre + ' con ' + (existente.getLastRow() - 1) +
+      ' renglones. Revisa si sirve, cámbiale el nombre o bórrala, y vuelve a intentar.',
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+
+  const seguro = ui.alert(
+    'Mover ' + nombre,
+    'Se copiará ' + nombre + ' (' + reportes + ' reportes) de "' + datos.getName() + '" a este archivo, ' +
+    'y después se borrará de allá.\n\n' + CONFIG.PESTANAS.control + ' no se toca y el vaciado sigue llegando ahí.\n\n¿Continuar?',
+    ui.ButtonSet.YES_NO
+  );
+  if (seguro !== ui.Button.YES) return;
+
+  // El mismo candado que usan los envios: ningun reporte entra a la mitad.
+  const candado = LockService.getScriptLock();
+  if (!candado.tryLock(30000)) {
+    ui.alert('Intenta de nuevo', 'Un chofer está enviando en este momento. Vuelve a intentar en unos segundos.', ui.ButtonSet.OK);
+    return;
+  }
+
+  try {
+    if (existente) destino.deleteSheet(existente);
+    const copia = original.copyTo(destino).setName(nombre);
+
+    const filas = original.getLastRow();
+    const columnas = original.getLastColumn();
+    const igual = copia.getLastRow() === filas && copia.getLastColumn() === columnas &&
+      (filas === 0 || JSON.stringify(original.getRange(1, 1, filas, columnas).getValues()) ===
+                      JSON.stringify(copia.getRange(1, 1, filas, columnas).getValues()));
+    if (!igual) {
+      destino.deleteSheet(copia);
+      ui.alert('No se movió', 'La copia no quedó igual al original. No se borró nada.', ui.ButtonSet.OK);
+      return;
+    }
+
+    propiedades.setProperty(CONFIG.PROPIEDAD_RESPUESTAS_EN_FORMULARIO, 'SI');
+    datos.deleteSheet(original);
+  } finally {
+    candado.releaseLock();
+  }
+
+  ui.alert(
+    'Listo',
+    nombre + ' ya está en este archivo, con sus ' + reportes + ' reportes. Los nuevos llegan aquí, ' +
+    'y el vaciado sigue escribiendo en ' + CONFIG.PESTANAS.control + ' de "' + datos.getName() + '".',
+    ui.ButtonSet.OK
+  );
+}
+
+/**
  * Agrega el menu del formulario. Se instala como activador al abrir en vez de
  * definir un onOpen propio, porque el proyecto ya tiene el suyo y dos
  * funciones con el mismo nombre se pisan.
@@ -385,5 +478,6 @@ function crearMenuFormulario() {
     .addItem('Vaciar reportes a ' + CONFIG.PESTANAS.control, 'vaciarReportesDesdeMenu')
     .addSeparator()
     .addItem('Cambiar hoja de datos…', 'cambiarHojaDeDatos')
+    .addItem('Mover ' + CONFIG.PESTANAS.respuestas + ' a este archivo…', 'moverRespuestasAEsteArchivo')
     .addToUi();
 }

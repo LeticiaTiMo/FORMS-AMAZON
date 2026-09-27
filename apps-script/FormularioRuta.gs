@@ -127,7 +127,15 @@ function driversActivos() {
  * pero corriendo como liga web esa llamada no tiene hoja activa. Por eso
  * onOpen la apunta en una propiedad, y aqui se usa esa como respaldo.
  */
+// undefined: todavia no se busca en esta ejecucion; null: no hay.
+let libroDelFormulario;
+
 function hojaDelFormulario() {
+  if (libroDelFormulario === undefined) libroDelFormulario = buscarHojaDelFormulario();
+  return libroDelFormulario;
+}
+
+function buscarHojaDelFormulario() {
   try {
     const activa = SpreadsheetApp.getActiveSpreadsheet();
     if (activa) return activa;
@@ -140,6 +148,23 @@ function hojaDelFormulario() {
   } catch (e) {
     return null;
   }
+}
+
+/**
+ * Donde vive Respuestas_Form. Empieza en la hoja de datos y pasa a la hoja
+ * del formulario cuando moverRespuestasAEsteArchivo() la muda y deja la
+ * propiedad puesta. Se decide con la propiedad y no buscando la pestania en
+ * los dos archivos: asi no hay un momento en que los reportes caigan en uno y
+ * el historial siga en el otro, y no se abre la hoja de datos, que es la lenta.
+ */
+function libroDeRespuestas() {
+  const movida = PropertiesService.getScriptProperties()
+    .getProperty(CONFIG.PROPIEDAD_RESPUESTAS_EN_FORMULARIO) === 'SI';
+  if (movida) {
+    const propio = hojaDelFormulario();
+    if (propio) return propio;
+  }
+  return hoja();
 }
 
 /** Lo llama onOpen: deja apuntada la hoja vinculada para cuando corra la liga web. */
@@ -430,7 +455,7 @@ function resumenFinal(driver, d, referencia, fecha) {
 // --- Escritura ---
 
 function asegurarPestanaRespuestas() {
-  const libro = hoja();
+  const libro = libroDeRespuestas();
   let h = libro.getSheetByName(CONFIG.PESTANAS.respuestas);
   if (!h) {
     h = libro.insertSheet(CONFIG.PESTANAS.respuestas);
@@ -568,7 +593,10 @@ function guardarInicial(datos) {
   }
 
   try {
-    const catalogos = { drivers: driversActivos(), cedis: CONFIG.CEDIS };
+    // La lista en memoria y no la de OPERADORES: leerla obligaria a abrir la
+    // hoja de datos, la lenta. Un chofer dado de baja puede seguir enviando
+    // hasta que se renueve la lista (SEGUNDOS_CACHE_CATALOGOS).
+    const catalogos = obtenerCatalogos();
     const revision = validarInicial(datos, catalogos);
     if (revision.errores.length) return { ok: false, errores: revision.errores };
 
