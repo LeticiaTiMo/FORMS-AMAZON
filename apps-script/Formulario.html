@@ -334,8 +334,10 @@
       <div class="seccion">Datos de ruta</div>
       <h2>Vehículo y ruta</h2>
       <div class="campo">
-        <label for="PLACAS">Placas</label>
-        <input type="text" id="PLACAS" name="PLACAS" autocomplete="off" autocapitalize="characters">
+        <label for="PLACAS_LISTA">Placas</label>
+        <select id="PLACAS_LISTA" class="oculto"></select>
+        <input type="text" id="PLACAS" name="PLACAS" autocomplete="off" autocapitalize="characters" placeholder="Escribe la placa">
+        <div class="pista oculto" id="pistaPlacaNueva">Escríbela tal como aparece en el vehículo.</div>
         <div class="malo-texto oculto"></div>
       </div>
       <div class="campo">
@@ -683,7 +685,7 @@
     claves.forEach(function (c) {
       var el = $(c);
       if (!el) return;
-      el.classList.remove('malo');
+      el.parentNode.querySelectorAll('.malo').forEach(function (x) { x.classList.remove('malo'); });
       var m = el.parentNode.querySelector('.malo-texto');
       if (m) { m.textContent = ''; m.classList.add('oculto'); }
     });
@@ -692,7 +694,12 @@
   function marcar(clave, mensaje) {
     var el = $(clave);
     if (!el) return;
-    el.classList.add('malo');
+    // Si el campo esta escondido (la placa elegida de la lista), se marca lo
+    // que el chofer si ve.
+    var visible = el.classList.contains('oculto')
+      ? el.parentNode.querySelector('select:not(.oculto), input:not(.oculto)') || el
+      : el;
+    visible.classList.add('malo');
     var m = el.parentNode.querySelector('.malo-texto');
     if (m) { m.textContent = mensaje; m.classList.remove('oculto'); }
   }
@@ -793,6 +800,8 @@
       if (cat.drivers.indexOf(antes) !== -1) $(s[0]).value = antes;
     });
 
+    pintarPlacas(cat.placas);
+
     var caja = $('opcionesCedis');
     caja.innerHTML = '';
     cat.cedis.forEach(function (c) {
@@ -806,6 +815,55 @@
       caja.appendChild(b);
     });
   }
+
+  // --- Placas ---
+
+  var OTRA_PLACA = '__otra__';
+
+  /**
+   * La placa se elige de la lista, o con "Otra" se escribe una nueva. El valor
+   * que se envia siempre es el del campo PLACAS: la lista solo lo llena.
+   * Sin lista (la pestania PLACAS no existe o la lista guardada en el celular
+   * es de antes) queda solo el campo, como antes.
+   */
+  function pintarPlacas(placas) {
+    var lista = $('PLACAS_LISTA');
+    var campo = $('PLACAS');
+    if (!placas || !placas.length) {
+      lista.classList.add('oculto');
+      campo.classList.remove('oculto');
+      $('pistaPlacaNueva').classList.add('oculto');
+      return;
+    }
+
+    var antes = valor('PLACAS');
+    llenarSelect(lista, placas, 'Selecciona la placa…');
+    var otra = document.createElement('option');
+    otra.value = OTRA_PLACA;
+    otra.textContent = 'Otra (no está en la lista)';
+    lista.appendChild(otra);
+    lista.classList.remove('oculto');
+
+    if (antes && placas.indexOf(antes.toUpperCase()) === -1) {
+      lista.value = OTRA_PLACA;
+    } else {
+      lista.value = antes ? antes.toUpperCase() : '';
+    }
+    mostrarPlacaNueva(lista.value === OTRA_PLACA);
+  }
+
+  function mostrarPlacaNueva(si) {
+    $('PLACAS').classList.toggle('oculto', !si);
+    $('pistaPlacaNueva').classList.toggle('oculto', !si);
+  }
+
+  $('PLACAS_LISTA').addEventListener('change', function () {
+    var nueva = this.value === OTRA_PLACA;
+    $('PLACAS').value = nueva ? '' : this.value;
+    mostrarPlacaNueva(nueva);
+    limpiarMarcas(['PLACAS']);
+    if (nueva) $('PLACAS').focus();
+  });
 
   /**
    * Casi siempre el celular es de un solo chofer. Si ya se sabe quien es, se

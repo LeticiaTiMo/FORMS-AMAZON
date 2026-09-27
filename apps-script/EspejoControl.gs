@@ -303,6 +303,7 @@ function vaciarAControl() {
  * para entonces: solo cambia por donde se entera uno.
  */
 function vaciarReportesDesdeMenu() {
+  recordarHojaDelFormulario();
   const resultado = vaciarAControl();
 
   // El menu puede vivir en una hoja distinta de la de datos, asi que el aviso
@@ -332,6 +333,7 @@ function vaciarReportesDesdeMenu() {
  * donde no puede trabajar.
  */
 function cambiarHojaDeDatos() {
+  recordarHojaDelFormulario();
   const ui = SpreadsheetApp.getUi();
 
   let actual = 'ninguna';
@@ -363,7 +365,7 @@ function cambiarHojaDeDatos() {
 
   PropertiesService.getScriptProperties().setProperty(CONFIG.PROPIEDAD_ID_HOJA, id);
   // La lista de choferes en memoria es de la hoja anterior.
-  CacheService.getScriptCache().remove('catalogos');
+  CacheService.getScriptCache().remove(CONFIG.CLAVE_CACHE_CATALOGOS);
 
   ui.alert(
     'Hoja de datos cambiada',

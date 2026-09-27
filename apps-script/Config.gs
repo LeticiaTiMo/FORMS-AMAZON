@@ -7,12 +7,29 @@ const CONFIG = {
   // El ID de la hoja no se escribe aqui: el repositorio es publico.
   // Se guarda en Propiedades del Script con este nombre. Ver docs/instalacion.md
   PROPIEDAD_ID_HOJA: 'ID_HOJA',
+  // La hoja vinculada al proyecto, donde vive la pestania PLACAS. No se llena
+  // a mano: la apunta onOpen al abrir esa hoja. Ver hojaDelFormulario().
+  PROPIEDAD_ID_HOJA_FORMULARIO: 'ID_HOJA_FORMULARIO',
 
   PESTANAS: {
     respuestas: 'Respuestas_Form',
     operadores: 'OPERADORES',
     control: 'BD_AMAZON',
+    // Esta no esta en la hoja de datos sino en la vinculada al proyecto
+    // (FORMULARIO AMAZON). Ver placasDisponibles().
+    placas: 'PLACAS',
   },
+
+  PLACAS: {
+    encabezados: ['PLACA', 'PLACAS'],
+    // Donde se anotan las placas que los choferes escriben con "Otra", para
+    // que Leticia las revise y las pase a la lista. No salen en el desplegable.
+    encabezadosNuevas: ['OTRA', 'OTRAS'],
+  },
+
+  // Cambiar este nombre descarta la lista guardada en memoria, lo que hace
+  // falta cuando la lista cambia de forma y no solo de contenido.
+  CLAVE_CACHE_CATALOGOS: 'catalogos-v2',
 
   OPERADORES: {
     encabezadoNombre: 'NOMBRE DEL DRIVER',

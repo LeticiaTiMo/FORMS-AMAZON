@@ -123,6 +123,120 @@ function driversActivos() {
 }
 
 /**
+ * La hoja vinculada al proyecto. Desde el menu la da getActiveSpreadsheet(),
+ * pero corriendo como liga web esa llamada no tiene hoja activa. Por eso
+ * onOpen la apunta en una propiedad, y aqui se usa esa como respaldo.
+ */
+function hojaDelFormulario() {
+  try {
+    const activa = SpreadsheetApp.getActiveSpreadsheet();
+    if (activa) return activa;
+  } catch (e) {}
+
+  const id = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPIEDAD_ID_HOJA_FORMULARIO);
+  if (!id) return null;
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Lo llama onOpen: deja apuntada la hoja vinculada para cuando corra la liga web. */
+function recordarHojaDelFormulario() {
+  try {
+    const activa = SpreadsheetApp.getActiveSpreadsheet();
+    if (!activa) return;
+    const propiedades = PropertiesService.getScriptProperties();
+    if (propiedades.getProperty(CONFIG.PROPIEDAD_ID_HOJA_FORMULARIO) === activa.getId()) return;
+    propiedades.setProperty(CONFIG.PROPIEDAD_ID_HOJA_FORMULARIO, activa.getId());
+    // La lista en memoria se armo sin esta hoja, y le faltan las placas.
+    CacheService.getScriptCache().remove(CONFIG.CLAVE_CACHE_CATALOGOS);
+  } catch (e) {}
+}
+
+/**
+ * Las placas para el desplegable. La pestania PLACAS vive en la hoja
+ * vinculada al proyecto (FORMULARIO AMAZON), no en la de datos; si el proyecto
+ * no esta vinculado o ahi no existe, se busca en la hoja de datos.
+ *
+ * Acepta la columna con encabezado PLACA o PLACAS, o las placas en la primera
+ * columna sin encabezado. Una placa con BAJA en una columna STATUS no sale.
+ *
+ * Sin pestania regresa la lista vacia y la pantalla deja escribir la placa a
+ * mano, como antes. No es motivo para dejar el formulario inservible.
+ */
+function pestanaDePlacas() {
+  const propia = hojaDelFormulario();
+  const origen = propia ? propia.getSheetByName(CONFIG.PESTANAS.placas) : null;
+  return origen || hoja().getSheetByName(CONFIG.PESTANAS.placas);
+}
+
+function primerEncabezado(valores, opciones) {
+  let columna = -1;
+  opciones.forEach(function (e) {
+    if (columna === -1) columna = columnaPorEncabezado(valores, e);
+  });
+  return columna;
+}
+
+function placasDisponibles() {
+  const origen = pestanaDePlacas();
+  if (!origen) return [];
+
+  const valores = origen.getDataRange().getValues();
+  if (!valores.length) return [];
+
+  let columna = primerEncabezado(valores, CONFIG.PLACAS.encabezados);
+  const conEncabezado = columna !== -1;
+  if (!conEncabezado) columna = 0;
+  const iEstatus = conEncabezado ? columnaPorEncabezado(valores, CONFIG.OPERADORES.encabezadoEstatus) : -1;
+
+  const placas = [];
+  for (let f = conEncabezado ? 1 : 0; f < valores.length; f++) {
+    // Se acomoda igual que la placa escrita a mano, para que la misma placa
+    // no llegue a la hoja de dos formas.
+    const placa = normalizarTexto(valores[f][columna], NORMALIZAR.PLACAS);
+    if (!placa) continue;
+    if (iEstatus !== -1 && String(valores[f][iEstatus] || '').trim().toUpperCase() === 'BAJA') continue;
+    if (placas.indexOf(placa) === -1) placas.push(placa);
+  }
+  return placas.sort();
+}
+
+/**
+ * Anota en la columna OTRA de la pestania PLACAS una placa que el chofer
+ * escribio a mano, para que Leticia la revise y la pase a la lista. Solo una
+ * vez: si ya esta en la lista o en OTRA, no se repite.
+ *
+ * Nunca debe impedir que se guarde el reporte, que ya se escribio antes de
+ * llegar aqui. Sin columna OTRA simplemente no anota.
+ */
+function anotarPlacaNueva(placa) {
+  if (!placa) return;
+  try {
+    const origen = pestanaDePlacas();
+    if (!origen) return;
+    const valores = origen.getDataRange().getValues();
+    if (!valores.length) return;
+
+    const iOtra = primerEncabezado(valores, CONFIG.PLACAS.encabezadosNuevas);
+    if (iOtra === -1) return;
+    const iLista = primerEncabezado(valores, CONFIG.PLACAS.encabezados);
+
+    let filaLibre = valores.length + 1;
+    for (let f = 1; f < valores.length; f++) {
+      const enOtra = normalizarTexto(valores[f][iOtra], NORMALIZAR.PLACAS);
+      const enLista = iLista === -1 ? '' : normalizarTexto(valores[f][iLista], NORMALIZAR.PLACAS);
+      if (enOtra === placa || enLista === placa) return;
+      if (!enOtra && filaLibre > valores.length) filaLibre = f + 1;
+    }
+
+    origen.getRange(filaLibre, iOtra + 1).setValue(placa);
+  } catch (e) {}
+}
+
+/**
  * La lista sale de memoria cuando se puede. Es lo primero que pide la
  * pantalla, y leerla de la hoja en frio deja al chofer mas de 20 segundos
  * viendo "Cargando".
@@ -132,7 +246,7 @@ function driversActivos() {
  */
 function obtenerCatalogos() {
   const cache = CacheService.getScriptCache();
-  const guardado = cache.get('catalogos');
+  const guardado = cache.get(CONFIG.CLAVE_CACHE_CATALOGOS);
   if (guardado) return JSON.parse(guardado);
   return guardarCatalogosEnCache();
 }
@@ -141,8 +255,9 @@ function guardarCatalogosEnCache() {
   const catalogos = {
     drivers: driversActivos(),
     cedis: CONFIG.CEDIS,
+    placas: placasDisponibles(),
   };
-  CacheService.getScriptCache().put('catalogos', JSON.stringify(catalogos), CONFIG.SEGUNDOS_CACHE_CATALOGOS);
+  CacheService.getScriptCache().put(CONFIG.CLAVE_CACHE_CATALOGOS, JSON.stringify(catalogos), CONFIG.SEGUNDOS_CACHE_CATALOGOS);
   return catalogos;
 }
 
@@ -478,6 +593,7 @@ function guardarInicial(datos) {
     const fila = COLUMNAS.map(function (c) { return limpio[c] === undefined ? '' : limpio[c]; });
     h.appendRow(fila);
     darFormatoFechas(h, h.getLastRow(), ['MARCA_TIEMPO_INICIAL', 'FECHA']);
+    anotarPlacaNueva(limpio.PLACAS);
 
     return {
       ok: true,

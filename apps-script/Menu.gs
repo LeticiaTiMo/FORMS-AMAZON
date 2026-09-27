@@ -9,4 +9,5 @@
  */
 function onOpen() {
   crearMenuFormulario();
+  recordarHojaDelFormulario();
 }
