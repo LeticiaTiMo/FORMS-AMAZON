@@ -21,6 +21,18 @@ const CONFIG = {
   },
 
   CEDIS: ['DMT3', 'DMT6', 'DMT4', 'DMT2', 'DTR1'],
+
+  // Las fechas se guardan como fecha de verdad y esto solo cambia como se ven.
+  // Guardarlas como texto "27-09-2026" dejaria que Sheets las reinterprete
+  // segun el idioma de la hoja, y "05-09" podria leerse como 9 de mayo.
+  FORMATOS: {
+    fecha: 'dd-mm-yyyy',
+    marca: 'dd-mm-yyyy hh:mm:ss',
+  },
+
+  // Cuanto dura la lista de choferes en memoria antes de volver a leer
+  // OPERADORES. Abrir la hoja en frio tarda mas de 20 segundos.
+  SEGUNDOS_CACHE_CATALOGOS: 30 * 60,
 };
 
 /**

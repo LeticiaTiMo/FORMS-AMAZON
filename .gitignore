@@ -36,3 +36,7 @@ npm-debug.log*
 
 # Liga de clasp con el script de cada computadora (copia o produccion). No se comparte.
 .clasp.json
+
+# Copia de la pantalla para el hosting propio. Lleva la liga /exec de Apps Script
+# pegada en URL_API, y el repositorio es publico. Ver docs/hosting-propio.md
+reporte-ruta.html

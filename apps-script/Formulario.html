@@ -508,6 +508,13 @@
 </div>
 
 <script>
+  /**
+   * Solo se llena en la copia que se sube al hosting propio: la liga /exec de
+   * la implementacion de Apps Script. Servida desde Google se queda vacia y
+   * no se usa. En el repositorio va vacia porque es publico.
+   */
+  var URL_API = '';
+
   var FLUJO_INICIAL = ['p-driver', 'p-cedis', 'p-auxiliar', 'p-vehiculo', 'p-horas', 'p-carga', 'p-revisar-inicial'];
   var FLUJO_FINAL   = ['p-driver', 'p-ue', 'p-paquetes', 'p-desglose', 'p-km', 'p-revisar-final'];
 
@@ -707,32 +714,149 @@
     $('pistaWhatsApp').classList.remove('oculto');
   }
 
+  // --- Conexion con Apps Script ---
+
+  /**
+   * Llama una funcion del servidor y regresa una promesa.
+   *
+   * Servida desde Google la pantalla tiene google.script.run. En el hosting
+   * propio no existe, y se usa fetch contra doPost. El tipo text/plain es a
+   * proposito: con application/json el navegador primero pregunta permiso
+   * (preflight) y Apps Script no sabe contestar esa pregunta.
+   */
+  function servidor(funcion, args) {
+    return new Promise(function (resolver, rechazar) {
+      if (window.google && google.script && google.script.run) {
+        var llamada = google.script.run.withSuccessHandler(resolver).withFailureHandler(rechazar);
+        llamada[funcion].apply(llamada, args || []);
+        return;
+      }
+
+      if (!URL_API) {
+        rechazar(new Error('Falta pegar la liga de Apps Script en URL_API.'));
+        return;
+      }
+
+      fetch(URL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ funcion: funcion, args: args || [] })
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('El servidor respondió ' + r.status + '.');
+          return r.text();
+        })
+        .then(function (texto) {
+          var res;
+          // Si la implementacion no es de acceso para cualquier usuario, Google
+          // contesta con su pantalla de inicio de sesion en vez de JSON.
+          try { res = JSON.parse(texto); } catch (e) {
+            throw new Error('El servidor no contestó con datos. Revisa que la implementación esté publicada para "Cualquier usuario".');
+          }
+          if (res.error) throw new Error(res.error);
+          resolver(res.resultado);
+        })
+        .catch(function (e) {
+          rechazar(e instanceof TypeError
+            ? new Error('Sin conexión con el servidor. Revisa tu señal e intenta de nuevo.')
+            : e);
+        });
+    });
+  }
+
   // --- Arranque ---
 
-  google.script.run
-    .withSuccessHandler(function (cat) {
-      llenarSelect($('DRIVER'), cat.drivers, 'Selecciona tu nombre…');
-      llenarSelect($('NOMBRE_AUXILIAR'), cat.drivers, 'Selecciona al auxiliar…');
+  /**
+   * Lo que se guarda en el celular para arrancar rapido: la ultima lista de
+   * choferes y el nombre del chofer. localStorage puede no existir o fallar
+   * (navegacion privada, datos bloqueados), y la pantalla funciona igual.
+   */
+  function leerLocal(clave) {
+    try { return JSON.parse(localStorage.getItem(clave)); } catch (e) { return null; }
+  }
 
-      var caja = $('opcionesCedis');
-      cat.cedis.forEach(function (c) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'opcion';
-        b.textContent = c;
-        b.setAttribute('data-cedis', c);
-        b.onclick = function () { elegirCedis(c); };
-        caja.appendChild(b);
-      });
+  function guardarLocal(clave, v) {
+    try { localStorage.setItem(clave, JSON.stringify(v)); } catch (e) {}
+  }
 
-      flujo = ['p-driver'];
-      indice = 0;
-      irA('p-driver', false);
+  var catalogosPintados = '';
+
+  /** Se puede llamar dos veces: con la lista guardada y con la que llega fresca. */
+  function pintarCatalogos(cat) {
+    var huella = JSON.stringify(cat);
+    if (huella === catalogosPintados) return;
+    catalogosPintados = huella;
+
+    [['DRIVER', 'Selecciona tu nombre…'], ['NOMBRE_AUXILIAR', 'Selecciona al auxiliar…']].forEach(function (s) {
+      var antes = valor(s[0]);
+      llenarSelect($(s[0]), cat.drivers, s[1]);
+      if (cat.drivers.indexOf(antes) !== -1) $(s[0]).value = antes;
+    });
+
+    var caja = $('opcionesCedis');
+    caja.innerHTML = '';
+    cat.cedis.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opcion';
+      b.classList.toggle('elegida', c === valor('CEDIS'));
+      b.textContent = c;
+      b.setAttribute('data-cedis', c);
+      b.onclick = function () { elegirCedis(c); };
+      caja.appendChild(b);
+    });
+  }
+
+  /**
+   * Casi siempre el celular es de un solo chofer. Si ya se sabe quien es, se
+   * pregunta que le toca desde ahora, mientras el lee la pantalla, y no hasta
+   * que toque Continuar.
+   */
+  var estadoAdelantado = null;
+
+  function adelantarEstado(nombre) {
+    var promesa = servidor('estadoDelDia', [nombre]);
+    promesa.catch(function () {}); // si falla, continuarDriver vuelve a preguntar
+    estadoAdelantado = { driver: nombre, promesa: promesa };
+  }
+
+  function arrancar(cat) {
+    pintarCatalogos(cat);
+    if (actual !== 'p-cargando') return;
+
+    var recordado = leerLocal('driver');
+    if (recordado && cat.drivers.indexOf(recordado) !== -1) {
+      $('DRIVER').value = recordado;
+      adelantarEstado(recordado);
+    }
+
+    flujo = ['p-driver'];
+    indice = 0;
+    irA('p-driver', false);
+  }
+
+  var guardados = leerLocal('catalogos');
+  if (guardados && guardados.drivers && guardados.cedis) arrancar(guardados);
+
+  var avisoLento = setTimeout(function () {
+    if (actual === 'p-cargando') {
+      $('textoCargando').innerHTML = 'Cargando&hellip;<br>La primera vez del día puede tardar unos segundos.';
+    }
+  }, 4000);
+
+  servidor('obtenerCatalogos')
+    .then(function (cat) {
+      clearTimeout(avisoLento);
+      guardarLocal('catalogos', cat);
+      arrancar(cat);
     })
-    .withFailureHandler(function (e) {
+    .catch(function (e) {
+      clearTimeout(avisoLento);
+      // Si ya se mostro la lista guardada, el chofer puede seguir: el servidor
+      // vuelve a validar al enviar.
+      if (actual !== 'p-cargando') return;
       $('textoCargando').innerHTML = '<strong>No se pudieron cargar los catálogos.</strong><br>' + escapar(e.message);
-    })
-    .obtenerCatalogos();
+    });
 
   // --- Quien eres ---
 
@@ -753,9 +877,20 @@
     boton.disabled = true;
     boton.textContent = 'Revisando…';
 
-    google.script.run
-      .withSuccessHandler(function (res) {
+    var consulta;
+    if (estadoAdelantado && estadoAdelantado.driver === elegido) {
+      consulta = estadoAdelantado.promesa.catch(function () {
+        return servidor('estadoDelDia', [elegido]);
+      });
+    } else {
+      consulta = servidor('estadoDelDia', [elegido]);
+    }
+    estadoAdelantado = null;
+
+    consulta
+      .then(function (res) {
         driver = elegido;
+        guardarLocal('driver', elegido);
         boton.disabled = false;
         boton.textContent = 'Continuar';
 
@@ -779,12 +914,11 @@
           irA('p-completo', false);
         }
       })
-      .withFailureHandler(function (e) {
+      .catch(function (e) {
         marcar('DRIVER', 'No se pudo revisar: ' + e.message);
         boton.disabled = false;
         boton.textContent = 'Continuar';
-      })
-      .estadoDelDia(elegido);
+      });
   }
 
   // --- Opciones con botones ---
@@ -1014,8 +1148,8 @@
     boton.disabled = true;
     boton.textContent = 'Guardando… ⏳';
 
-    google.script.run
-      .withSuccessHandler(function (res) {
+    servidor('guardarInicial', [datos])
+      .then(function (res) {
         boton.disabled = false;
         boton.textContent = 'ENVIAR REPORTE INICIAL';
         if (res.ok) {
@@ -1024,12 +1158,11 @@
           mostrarFallas(res.errores);
         }
       })
-      .withFailureHandler(function (e) {
+      .catch(function (e) {
         boton.disabled = false;
         boton.textContent = 'ENVIAR REPORTE INICIAL';
         mostrarFallas(['No se pudo enviar: ' + e.message]);
-      })
-      .guardarInicial(datos);
+      });
   }
 
   function enviarFinal() {
@@ -1042,8 +1175,8 @@
     boton.disabled = true;
     boton.textContent = 'Guardando… ⏳';
 
-    google.script.run
-      .withSuccessHandler(function (res) {
+    servidor('guardarFinal', [driver, datos])
+      .then(function (res) {
         boton.disabled = false;
         boton.textContent = 'ENVIAR REPORTE FINAL';
         if (res.ok) {
@@ -1052,12 +1185,11 @@
           mostrarFallas(res.errores);
         }
       })
-      .withFailureHandler(function (e) {
+      .catch(function (e) {
         boton.disabled = false;
         boton.textContent = 'ENVIAR REPORTE FINAL';
         mostrarFallas(['No se pudo enviar: ' + e.message]);
-      })
-      .guardarFinal(driver, datos);
+      });
   }
 </script>
 </body>

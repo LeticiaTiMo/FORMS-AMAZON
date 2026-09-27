@@ -178,9 +178,10 @@ function clasificarReportes(respuestas) {
   const nuevos = [];
   const porCompletar = [];
   let sinCerrar = 0;
+  let total = 0;
 
   if (respuestas.getLastRow() < 2) {
-    return { nuevos: nuevos, porCompletar: porCompletar, sinCerrar: sinCerrar };
+    return { nuevos: nuevos, porCompletar: porCompletar, sinCerrar: sinCerrar, total: total };
   }
 
   const valores = respuestas.getRange(2, 1, respuestas.getLastRow() - 1, COLUMNAS.length).getValues();
@@ -190,6 +191,7 @@ function clasificarReportes(respuestas) {
   for (let f = 0; f < valores.length; f++) {
     const fila = valores[f];
     if (!String(fila[i.MARCA_TIEMPO_INICIAL] || '').trim()) continue;
+    total++;
 
     const datos = {};
     COLUMNAS.forEach(function (c, n) { datos[c] = fila[n]; });
@@ -208,7 +210,7 @@ function clasificarReportes(respuestas) {
     }
   }
 
-  return { nuevos: nuevos, porCompletar: porCompletar, sinCerrar: sinCerrar };
+  return { nuevos: nuevos, porCompletar: porCompletar, sinCerrar: sinCerrar, total: total };
 }
 
 function vaciarAControl() {
@@ -239,11 +241,12 @@ function vaciarAControl() {
         ok: true,
         mensaje: clasificados.sinCerrar
           ? 'No hay nada nuevo que vaciar. Hay ' + clasificados.sinCerrar + ' rutas en curso, ya reflejadas en el control.'
-          : 'No hay reportes nuevos que vaciar.',
+          : 'No hay reportes nuevos que vaciar. ' + CONFIG.PESTANAS.respuestas + ' tiene ' + clasificados.total +
+            ' reportes y todos ya están en ' + CONFIG.PESTANAS.control + '.',
       };
     }
 
-    const marca = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    const marca = new Date();
     const colFila = COLUMNAS.indexOf('FILA_CONTROL') + 1;
     const colInicial = COLUMNAS.indexOf('ESPEJADO_INICIAL') + 1;
     const colFinal = COLUMNAS.indexOf('ESPEJADO_FINAL') + 1;
@@ -259,19 +262,19 @@ function vaciarAControl() {
       nuevos.forEach(function (n, orden) {
         const filaControl = primeraFila + orden;
         respuestas.getRange(n.numeroFila, colFila).setValue(filaControl);
-        respuestas.getRange(n.numeroFila, colInicial).setValue(marca);
+        respuestas.getRange(n.numeroFila, colInicial).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
 
         // Llego ya cerrado, asi que el renglon nace completo.
         if (n.tieneFinal) {
           escribirFormulasFinales(control, filaControl);
-          respuestas.getRange(n.numeroFila, colFinal).setValue(marca);
+          respuestas.getRange(n.numeroFila, colFinal).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
         }
       });
     }
 
     porCompletar.forEach(function (p) {
       completarRenglon(control, p.filaControl, p.datos);
-      respuestas.getRange(p.numeroFila, colFinal).setValue(marca);
+      respuestas.getRange(p.numeroFila, colFinal).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
     });
 
     const partes = [];
@@ -302,18 +305,71 @@ function vaciarAControl() {
 function vaciarReportesDesdeMenu() {
   const resultado = vaciarAControl();
 
+  // El menu puede vivir en una hoja distinta de la de datos, asi que el aviso
+  // dice siempre sobre cual trabajo. Sin eso, un ID_HOJA equivocado se ve
+  // igual que "no hay reportes".
+  let destino = '';
+  try { destino = 'Hoja de datos: ' + hoja().getName() + '\n\n'; } catch (e) {}
+
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert(
       resultado.ok ? 'Reportes vaciados' : 'No se pudo vaciar',
-      resultado.mensaje,
+      destino + resultado.mensaje,
       ui.ButtonSet.OK
     );
   } catch (e) {
-    Logger.log(resultado.mensaje);
+    Logger.log(destino + resultado.mensaje);
   }
 
   return resultado;
+}
+
+/**
+ * Cambia la hoja de datos desde el menu, sin entrar a Propiedades del script.
+ * Revisa que la hoja nueva tenga las pestanias que el formulario necesita
+ * antes de guardarla, para no dejar el formulario apuntando a una hoja
+ * donde no puede trabajar.
+ */
+function cambiarHojaDeDatos() {
+  const ui = SpreadsheetApp.getUi();
+
+  let actual = 'ninguna';
+  try { actual = hoja().getName(); } catch (e) {}
+
+  const respuesta = ui.prompt(
+    'Hoja de datos',
+    'Ahora: ' + actual + '\n\nPega la dirección de la hoja donde deben caer los reportes:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (respuesta.getSelectedButton() !== ui.Button.OK) return;
+
+  const id = idDeHoja(respuesta.getResponseText());
+  let libro;
+  try {
+    libro = SpreadsheetApp.openById(id);
+  } catch (e) {
+    ui.alert('No se pudo abrir esa hoja', 'Revisa la dirección y que tu cuenta tenga acceso.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const faltan = [CONFIG.PESTANAS.operadores, CONFIG.PESTANAS.control].filter(function (nombre) {
+    return !libro.getSheetByName(nombre);
+  });
+  if (faltan.length) {
+    ui.alert('No se cambió', libro.getName() + ' no tiene la pestaña ' + faltan.join(' ni ') + '.', ui.ButtonSet.OK);
+    return;
+  }
+
+  PropertiesService.getScriptProperties().setProperty(CONFIG.PROPIEDAD_ID_HOJA, id);
+  // La lista de choferes en memoria es de la hoja anterior.
+  CacheService.getScriptCache().remove('catalogos');
+
+  ui.alert(
+    'Hoja de datos cambiada',
+    'Ahora el formulario y el vaciado trabajan sobre: ' + libro.getName(),
+    ui.ButtonSet.OK
+  );
 }
 
 /**
@@ -325,5 +381,7 @@ function crearMenuFormulario() {
   SpreadsheetApp.getUi()
     .createMenu('Formulario de ruta')
     .addItem('Vaciar reportes a ' + CONFIG.PESTANAS.control, 'vaciarReportesDesdeMenu')
+    .addSeparator()
+    .addItem('Cambiar hoja de datos…', 'cambiarHojaDeDatos')
     .addToUi();
 }

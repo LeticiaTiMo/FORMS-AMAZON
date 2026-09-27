@@ -170,6 +170,12 @@ Recarga la hoja de cálculo. Junto a *Ayuda* debe aparecer el menú **Formulario
 > proyecto no admite dos funciones `onOpen`: la segunda pisa a la primera y el menú que ya
 > estaba deja de salir. El activador convive con lo que haya.
 
+**Si el proyecto es solo del formulario**, sin otro `onOpen`, no hace falta el activador: copia
+también `Menu.gs` y el menú sale solo al abrir la hoja a la que está vinculado el proyecto.
+
+Esa hoja no tiene que ser la de los datos. El vaciado siempre trabaja sobre la hoja de
+`ID_HOJA`, así que el menú puede vivir en una hoja aparte y dejar la de datos sin tocar.
+
 ---
 
 ## Paso 5 · Publicar la pantalla

@@ -11,6 +11,37 @@ function doGet() {
 }
 
 /**
+ * Entrada para la pantalla alojada en un hosting propio, fuera de Google.
+ * Ahi no existe google.script.run, asi que la pantalla manda por POST el
+ * nombre de la funcion y sus argumentos, y recibe la respuesta en JSON.
+ *
+ * Solo se pueden llamar las cuatro funciones que usa la pantalla. Abrir la
+ * puerta a cualquier funcion dejaria correr vaciarAControl() desde afuera.
+ */
+function doPost(e) {
+  const funciones = {
+    obtenerCatalogos: obtenerCatalogos,
+    estadoDelDia: estadoDelDia,
+    guardarInicial: guardarInicial,
+    guardarFinal: guardarFinal,
+  };
+
+  let respuesta;
+  try {
+    const pedido = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const funcion = funciones[pedido.funcion];
+    if (!funcion) throw new Error('Petición no reconocida.');
+    const args = Array.isArray(pedido.args) ? pedido.args : [];
+    respuesta = { resultado: funcion.apply(null, args) };
+  } catch (err) {
+    respuesta = { error: err.message };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(respuesta))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
  * Acepta el identificador pelado o la direccion completa de la hoja. Copiar la
  * direccion entera, o dejarle pedazos como "d/" y "/edit", es el error mas
  * comun al configurar la propiedad, y el mensaje de Google no dice como
@@ -22,7 +53,16 @@ function idDeHoja(valor) {
   return enDireccion ? enDireccion[1] : texto;
 }
 
+// Una sola apertura por ejecucion: guardarInicial pasa por pestana() y por
+// asegurarPestanaRespuestas(), y cada openById cuesta.
+let libroAbierto = null;
+
 function hoja() {
+  if (!libroAbierto) libroAbierto = abrirHoja();
+  return libroAbierto;
+}
+
+function abrirHoja() {
   const guardado = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPIEDAD_ID_HOJA);
   if (!guardado) {
     throw new Error(
@@ -82,11 +122,37 @@ function driversActivos() {
   return activos.sort(function (a, b) { return a.localeCompare(b, 'es'); });
 }
 
+/**
+ * La lista sale de memoria cuando se puede. Es lo primero que pide la
+ * pantalla, y leerla de la hoja en frio deja al chofer mas de 20 segundos
+ * viendo "Cargando".
+ *
+ * Un chofer dado de alta tarda hasta SEGUNDOS_CACHE_CATALOGOS en aparecer, o
+ * menos si corre el activador de precargar().
+ */
 function obtenerCatalogos() {
-  return {
+  const cache = CacheService.getScriptCache();
+  const guardado = cache.get('catalogos');
+  if (guardado) return JSON.parse(guardado);
+  return guardarCatalogosEnCache();
+}
+
+function guardarCatalogosEnCache() {
+  const catalogos = {
     drivers: driversActivos(),
     cedis: CONFIG.CEDIS,
   };
+  CacheService.getScriptCache().put('catalogos', JSON.stringify(catalogos), CONFIG.SEGUNDOS_CACHE_CATALOGOS);
+  return catalogos;
+}
+
+/**
+ * Para un activador de tiempo cada 10 minutos. Mantiene la lista de choferes
+ * al dia en memoria y, de paso, la hoja abierta, para que el primer chofer de
+ * la manana no pague la apertura en frio.
+ */
+function precargar() {
+  guardarCatalogosEnCache();
 }
 
 // --- Validacion ---
@@ -200,7 +266,7 @@ function validarInicial(datos, catalogos) {
  * incompleto ni ambiguo, y le sirve de comprobante de que si reporto.
  */
 function fechaLegible(fecha) {
-  return Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+  return Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd-MM-yyyy');
 }
 
 function resumenInicial(d, fecha) {
@@ -290,28 +356,44 @@ function asegurarPestanaRespuestas() {
 }
 
 /**
- * Sheets convierte "2026-09-20" en fecha al guardarla, asi que al releerla
- * regresa un Date y no el texto. Sin normalizar, la busqueda nunca encuentra
- * el renglon del dia y se duplican los reportes.
+ * Lleva cualquier fecha de la columna FECHA a "yyyy-MM-dd" para comparar.
+ * Conviven tres formas: los renglones nuevos traen un Date; los viejos, texto
+ * "2026-09-20" que Sheets pudo o no convertir en Date; y alguien puede escribir
+ * "20-09-2026" a mano. Sin normalizar, la busqueda nunca encuentra el renglon
+ * del dia y se duplican los reportes.
  */
 function comoFecha(valor) {
   if (valor instanceof Date) {
     return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
-  return String(valor || '').trim();
+  const texto = String(valor || '').trim();
+  const diaMesAnio = texto.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+  return diaMesAnio ? diaMesAnio[3] + '-' + diaMesAnio[2] + '-' + diaMesAnio[1] : texto;
 }
 
+/**
+ * Lee solo de FECHA a DRIVER, no el renglon entero, y busca de abajo hacia
+ * arriba: los reportes de hoy siempre son los ultimos.
+ */
 function buscarFila(h, driver, fecha) {
   if (h.getLastRow() < 2) return 0;
-  const iDriver = COLUMNAS.indexOf('DRIVER');
   const iFecha = COLUMNAS.indexOf('FECHA');
-  const valores = h.getRange(2, 1, h.getLastRow() - 1, COLUMNAS.length).getValues();
-  for (let f = 0; f < valores.length; f++) {
-    if (String(valores[f][iDriver]).trim() === driver && comoFecha(valores[f][iFecha]) === fecha) {
+  const iDriver = COLUMNAS.indexOf('DRIVER');
+  const valores = h.getRange(2, iFecha + 1, h.getLastRow() - 1, iDriver - iFecha + 1).getValues();
+  for (let f = valores.length - 1; f >= 0; f--) {
+    if (String(valores[f][iDriver - iFecha]).trim() === driver && comoFecha(valores[f][0]) === fecha) {
       return f + 2;
     }
   }
   return 0;
+}
+
+/** Aplica el formato dia-mes-anio a las celdas de fecha que se acaban de escribir. */
+function darFormatoFechas(h, numeroFila, claves) {
+  claves.forEach(function (clave) {
+    const formato = clave === 'FECHA' ? CONFIG.FORMATOS.fecha : CONFIG.FORMATOS.marca;
+    h.getRange(numeroFila, COLUMNAS.indexOf(clave) + 1).setNumberFormat(formato);
+  });
 }
 
 function fechaDeHoy() {
@@ -388,11 +470,14 @@ function guardarInicial(datos) {
       };
     }
 
-    limpio.MARCA_TIEMPO_INICIAL = Utilities.formatDate(ahora, zona, 'yyyy-MM-dd HH:mm:ss');
-    limpio.FECHA = fecha;
+    limpio.MARCA_TIEMPO_INICIAL = ahora;
+    // A mediodia y no a medianoche: si la hoja tuviera otra zona horaria que
+    // el script, la medianoche se veria como el dia anterior.
+    limpio.FECHA = Utilities.parseDate(fecha + ' 12:00', zona, 'yyyy-MM-dd HH:mm');
 
     const fila = COLUMNAS.map(function (c) { return limpio[c] === undefined ? '' : limpio[c]; });
     h.appendRow(fila);
+    darFormatoFechas(h, h.getLastRow(), ['MARCA_TIEMPO_INICIAL', 'FECHA']);
 
     return {
       ok: true,
@@ -496,7 +581,7 @@ function guardarFinal(driver, datos) {
     if (revision.errores.length) return { ok: false, errores: revision.errores };
 
     const limpio = revision.datos;
-    limpio.MARCA_TIEMPO_FINAL = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    limpio.MARCA_TIEMPO_FINAL = new Date();
 
     // Los campos del envio final ocupan un bloque contiguo, asi que se escriben
     // de una sola vez. El bloque termina en MOTIVO a proposito: despues viene
@@ -507,6 +592,7 @@ function guardarFinal(driver, datos) {
       return limpio[c] === undefined ? '' : limpio[c];
     });
     h.getRange(numeroFila, inicio + 1, 1, bloque.length).setValues([bloque]);
+    darFormatoFechas(h, numeroFila, ['MARCA_TIEMPO_FINAL']);
 
     return {
       ok: true,
