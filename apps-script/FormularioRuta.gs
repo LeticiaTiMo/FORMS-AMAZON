@@ -640,7 +640,8 @@ function validarFinal(datos, referencia) {
   const limpio = {};
 
   CAMPOS_FINAL.forEach(function (campo) {
-    limpio[campo.clave] = String(datos[campo.clave] == null ? '' : datos[campo.clave]).trim();
+    const bruto = String(datos[campo.clave] == null ? '' : datos[campo.clave]).trim();
+    limpio[campo.clave] = NORMALIZAR[campo.clave] ? normalizarTexto(bruto, NORMALIZAR[campo.clave]) : bruto;
     if (campo.obligatorio && !limpio[campo.clave]) errores.push('Falta ' + campo.etiqueta + '.');
   });
 

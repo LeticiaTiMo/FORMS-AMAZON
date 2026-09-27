@@ -141,6 +141,7 @@ const NORMALIZAR = {
   PLACAS: 'mayusculas',
   ID_RUTA: 'mayusculas',
   ZONA_RUTA: 'inicial',
+  MOTIVO: 'mayusculas',
 };
 
 /** Las horas deben ir en este orden cronologico. */
@@ -163,8 +164,8 @@ const COLUMNAS_HORA = [
  * V Entregados queda fuera aunque el chofer lo capture, porque en la hoja de
  * control sale de una formula: SPR menos devoluciones.
  *
- * MOTIVO se guarda en Respuestas_Form pero no se espeja, por la misma regla de
- * no tocar de AB en adelante.
+ * MOTIVO va a COMENTARIOS (AD), la unica excepcion a no pasar de AA. Ver
+ * ESPEJO_COMENTARIOS.
  *
  * CANT_PAR y CANT_UBI tampoco se espejan: se piden solo para Respuestas_Form.
  */
@@ -204,6 +205,16 @@ const ESPEJO_FINAL = {
  * Va la formula y no el numero para que la hoja siga recalculando si alguien
  * corrige un dato despues. {f} se sustituye por el renglon que toque.
  */
+/**
+ * Columnas de AB en adelante que si son de dato y no de formula. Son la
+ * excepcion a la regla de no pasar de AA, asi que se escriben celda por celda
+ * y solo si el encabezado de la fila 1 dice lo que debe: si alguien mueve la
+ * columna, el espejo no escribe encima de una formula.
+ */
+const ESPEJO_COMENTARIOS = {
+  MOTIVO: { columna: 'AD', encabezado: 'COMENTARIOS' },
+};
+
 const ESPEJO_FORMULAS_FINAL = {
   V: '=U{f}-W{f}',
 };

@@ -166,6 +166,41 @@ function completarRenglon(control, filaControl, datos) {
   escribirFormulasFinales(control, filaControl);
 }
 
+/**
+ * Revisa una vez por vaciado que cada columna de ESPEJO_COMENTARIOS siga
+ * donde se espera. Las que no, se reportan y no se escriben.
+ */
+function columnasDeComentarios(control) {
+  const listas = {};
+  const fallidas = [];
+  Object.keys(ESPEJO_COMENTARIOS).forEach(function (clave) {
+    const destino = ESPEJO_COMENTARIOS[clave];
+    const numero = columnaANumero(destino.columna);
+    const encabezado = String(control.getRange(1, numero).getValue() || '').trim().toUpperCase();
+    if (encabezado === destino.encabezado.toUpperCase()) listas[clave] = numero;
+    else fallidas.push(destino.encabezado);
+  });
+  return { listas: listas, fallidas: fallidas };
+}
+
+/**
+ * Si Leticia ya escribio algo en la celda, se conserva y lo del chofer se
+ * agrega despues. Si ya estaba, no se repite al volver a vaciar.
+ */
+function escribirComentarios(control, filaControl, datos, columnas) {
+  Object.keys(columnas).forEach(function (clave) {
+    // Los reportes capturados antes de NORMALIZAR.MOTIVO llegan como los
+    // escribio el chofer; se acomodan aqui igual que los nuevos.
+    const bruto = String(datos[clave] == null ? '' : datos[clave]).trim();
+    const texto = NORMALIZAR[clave] ? normalizarTexto(bruto, NORMALIZAR[clave]) : bruto;
+    if (!texto) return;
+    const celda = control.getRange(filaControl, columnas[clave]);
+    const actual = String(celda.getValue() || '').trim();
+    if (actual.indexOf(texto) !== -1) return;
+    celda.setValue(actual ? actual + ' / ' + texto : texto);
+  });
+}
+
 function darFormatoHoras(control, primeraFila, cuantos) {
   COLUMNAS_HORA.forEach(function (clave) {
     const letra = ESPEJO_INICIAL[clave] || ESPEJO_FINAL[clave];
@@ -252,6 +287,7 @@ function vaciarAControl() {
     const colFila = COLUMNAS.indexOf('FILA_CONTROL') + 1;
     const colInicial = COLUMNAS.indexOf('ESPEJADO_INICIAL') + 1;
     const colFinal = COLUMNAS.indexOf('ESPEJADO_FINAL') + 1;
+    const comentarios = columnasDeComentarios(control);
 
     if (nuevos.length) {
       const primeraFila = primeraFilaLibre(control);
@@ -269,6 +305,7 @@ function vaciarAControl() {
         // Llego ya cerrado, asi que el renglon nace completo.
         if (n.tieneFinal) {
           escribirFormulasFinales(control, filaControl);
+          escribirComentarios(control, filaControl, n.datos, comentarios.listas);
           respuestas.getRange(n.numeroFila, colFinal).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
         }
       });
@@ -276,6 +313,7 @@ function vaciarAControl() {
 
     porCompletar.forEach(function (p) {
       completarRenglon(control, p.filaControl, p.datos);
+      escribirComentarios(control, p.filaControl, p.datos, comentarios.listas);
       respuestas.getRange(p.numeroFila, colFinal).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
     });
 
@@ -287,6 +325,10 @@ function vaciarAControl() {
     if (clasificados.sinCerrar) {
       mensaje += '\n\n' + clasificados.sinCerrar + ' rutas siguen en curso. Su renglón ya está en ' +
         CONFIG.PESTANAS.control + ', y se completa solo cuando el chofer mande su reporte final y vuelvas a vaciar.';
+    }
+    if (comentarios.fallidas.length) {
+      mensaje += '\n\nNo se escribió ' + comentarios.fallidas.join(' ni ') + ': el encabezado de la columna ya no ' +
+        'coincide. Revisa ESPEJO_COMENTARIOS en Config.gs.';
     }
     mensaje += '\n\nFaltan por capturar a mano: semana, mes, periodo, captura, fecha, tipo de vehículo, tipo de servicio y tipo de ruta.';
 
