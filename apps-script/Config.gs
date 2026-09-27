@@ -186,6 +186,13 @@ const ESPEJO_INICIAL = {
 };
 
 /**
+ * Columnas que marcan un renglon de BD_AMAZON como ocupado. Un renglon con
+ * cualquiera de ellas llena no se usa para un reporte nuevo: E y T las llenan
+ * los procesos que crean las rutas del dia, G el formulario.
+ */
+const COLUMNAS_OCUPADAS = ['E', 'G', 'T'];
+
+/**
  * Lo que llega por la tarde y se escribe sobre el renglon que ya existe.
  * No son columnas seguidas, y entre ellas hay formulas, asi que se escriben
  * una por una en vez de como bloque.

@@ -47,16 +47,21 @@ function vacio(valor) {
 /**
  * Donde termina el dato de verdad, que no es donde termina la hoja: las
  * formulas de AE a AG estan extendidas miles de filas por debajo del ultimo
- * reporte, asi que getLastRow apunta al vacio. Se busca por la columna del
- * driver, que solo tiene algo cuando hay un reporte real.
+ * reporte, asi que getLastRow apunta al vacio.
+ *
+ * No basta con la columna del driver. En la hoja original, AmazonWriter y
+ * añadirDatosInicioRuta() crean los renglones del dia con fecha (E) y route
+ * code (T) pero sin driver; buscar solo por G escribiria encima de ellos.
  */
 function primeraFilaLibre(control) {
-  const columnaLlave = columnaANumero(ESPEJO_INICIAL.DRIVER);
-  const valores = control.getRange(1, columnaLlave, control.getMaxRows(), 1).getValues();
-  for (let f = valores.length - 1; f >= 0; f--) {
-    if (String(valores[f][0] || '').trim()) return f + 2;
-  }
-  return 2;
+  let ultima = 0;
+  COLUMNAS_OCUPADAS.forEach(function (letra) {
+    const valores = control.getRange(1, columnaANumero(letra), control.getMaxRows(), 1).getValues();
+    for (let f = valores.length - 1; f > ultima - 1; f--) {
+      if (String(valores[f][0] || '').trim()) { ultima = f + 1; break; }
+    }
+  });
+  return Math.max(ultima + 1, 2);
 }
 
 function valorParaControl(clave, valor) {
@@ -407,6 +412,27 @@ function cambiarHojaDeDatos() {
     return;
   }
 
+  // Cada reporte ya vaciado recuerda su renglon en el BD_AMAZON anterior. En
+  // la hoja nueva ese numero de renglon es de otro reporte, y los que siguen
+  // en curso se completarian encima de el al llegar su envio final.
+  let anterior = null;
+  try { anterior = hoja(); } catch (e) {}
+  if (anterior && anterior.getId() !== id) {
+    const respuestas = libroDeRespuestas().getSheetByName(CONFIG.PESTANAS.respuestas);
+    const conteo = contarYaVaciados(respuestas);
+    if (conteo.vaciados) {
+      const seguir = ui.alert(
+        'Hay reportes de la hoja anterior',
+        CONFIG.PESTANAS.respuestas + ' tiene ' + conteo.vaciados + ' reportes ya vaciados a "' + anterior.getName() +
+        '"' + (conteo.enCurso ? ', ' + conteo.enCurso + ' de ellos todavía sin reporte final' : '') + '.\n\n' +
+        'No se pasan a la hoja nueva, y los que están en curso se completarían en el renglón equivocado. ' +
+        'Si eran pruebas, bórralos de ' + CONFIG.PESTANAS.respuestas + ' antes de cambiar.\n\n¿Cambiar de todos modos?',
+        ui.ButtonSet.YES_NO
+      );
+      if (seguir !== ui.Button.YES) return;
+    }
+  }
+
   PropertiesService.getScriptProperties().setProperty(CONFIG.PROPIEDAD_ID_HOJA, id);
   // La lista de choferes en memoria es de la hoja anterior.
   CacheService.getScriptCache().remove(CONFIG.CLAVE_CACHE_CATALOGOS);
@@ -416,6 +442,22 @@ function cambiarHojaDeDatos() {
     'Ahora el formulario y el vaciado trabajan sobre: ' + libro.getName(),
     ui.ButtonSet.OK
   );
+}
+
+/** Cuantos reportes ya tienen renglon en BD_AMAZON, y cuantos de esos siguen sin cerrar. */
+function contarYaVaciados(respuestas) {
+  const conteo = { vaciados: 0, enCurso: 0 };
+  if (!respuestas || respuestas.getLastRow() < 2) return conteo;
+
+  const valores = respuestas.getRange(2, 1, respuestas.getLastRow() - 1, COLUMNAS.length).getValues();
+  const iFila = COLUMNAS.indexOf('FILA_CONTROL');
+  const iFinal = COLUMNAS.indexOf('ESPEJADO_FINAL');
+  valores.forEach(function (fila) {
+    if (!String(fila[iFila] || '').trim()) return;
+    conteo.vaciados++;
+    if (!String(fila[iFinal] || '').trim()) conteo.enCurso++;
+  });
+  return conteo;
 }
 
 /**
