@@ -40,3 +40,6 @@ npm-debug.log*
 # Copia de la pantalla para el hosting propio. Lleva la liga /exec de Apps Script
 # pegada en URL_API, y el repositorio es publico. Ver docs/hosting-propio.md
 reporte-ruta.html
+# Cualquier otra copia de la pantalla en la raiz, con el nombre que sea: todas
+# llevan la liga /exec. El codigo de la pantalla vive en apps-script/.
+/*.html
