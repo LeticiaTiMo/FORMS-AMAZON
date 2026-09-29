@@ -813,6 +813,7 @@ function crearMenuFormulario() {
   SpreadsheetApp.getUi()
     .createMenu('Formulario de ruta')
     .addItem('Vaciar reportes a ' + CONFIG.PESTANAS.control, 'vaciarReportesDesdeMenu')
+    .addItem('Enviar por WhatsApp…', 'abrirEnviarPorWhatsApp')
     .addItem('Revisar reportes de hoy', 'revisarReportesDeHoy')
     .addItem('Reparar renglones de hoy…', 'repararRenglonesDeHoy')
     .addSeparator()

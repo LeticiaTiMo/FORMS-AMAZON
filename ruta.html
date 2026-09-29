@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporte de ruta</title>
+<style>
+  /* Estilo tomado de la Torre de Control: encabezado negro, acento azul,
+     una pregunta por pantalla y avisos en ventana. */
+  :root {
+    --negro: #000000;
+    --acento: #0066ff;
+    --acento-fondo: #f0f7ff;
+    --fondo: #f4f8fb;
+    --tarjeta: #ffffff;
+    --texto: #333333;
+    --tenue: #666666;
+    --borde: #eeeeee;
+    --error: #dc3545;
+    --error-fondo: #fdecea;
+    --ok: #28a745;
+    --ok-fondo: #e6f4ea;
+    --aviso-texto: #8a5300;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    font-size: 17px;
+    line-height: 1.45;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--tarjeta);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0, 0, 0, .05);
+  }
+
+  /* --- Encabezado --- */
+
+  header {
+    background: var(--negro);
+    color: #fff;
+    padding: 14px 52px 12px;
+    text-align: center;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+    z-index: 20;
+  }
+  header h1 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: 1px; }
+  header p  { margin: 2px 0 0; font-size: .82rem; opacity: .75; min-height: 1.1em; }
+
+  #flecha {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.6rem;
+    padding: 6px 10px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  #progreso { height: 4px; background: #222; }
+  #progreso div { height: 100%; width: 0; background: var(--acento); transition: width .3s ease; }
+
+  /* --- Pasos --- */
+
+  .contenido { position: relative; flex-grow: 1; overflow: hidden; }
+
+  .paso {
+    position: absolute;
+    inset: 0;
+    padding: 26px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--tarjeta);
+    opacity: 0;
+    transform: translateX(50px);
+    transition: opacity .3s ease, transform .3s ease;
+    pointer-events: none;
+  }
+  .paso.activo { opacity: 1; transform: translateX(0); pointer-events: all; z-index: 10; }
+  .paso.atras  { transform: translateX(-50px); }
+
+  .seccion {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--acento);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .paso h2 { font-size: 1.35rem; text-align: center; margin: 0 0 22px; font-weight: 700; }
+
+  .campo { margin-bottom: 16px; }
+
+  label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--tenue);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 6px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 15px 16px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    color: var(--texto);
+    background: #fff;
+    border: 2px solid var(--borde);
+    border-radius: 12px;
+    appearance: none;
+    transition: border-color .2s;
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%23666666' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 42px;
+  }
+  /* Rueda de hora: hora, minutos y a.m./p.m., como el selector del celular.
+     La franja del centro es la hora elegida. */
+  .rueda {
+    --alto: 40px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    height: calc(var(--alto) * 5);
+    background: #fff;
+    border: 2px solid var(--borde);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .rueda::before {
+    content: '';
+    position: absolute;
+    left: 10px; right: 10px;
+    top: calc(var(--alto) * 2);
+    height: var(--alto);
+    background: #eef0f3;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .rueda.elegida { border-color: var(--acento); }
+  .rueda.malo { border-color: var(--error); background: var(--error-fondo); }
+  .rueda-col {
+    position: relative;
+    width: 64px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .rueda-col::-webkit-scrollbar { display: none; }
+  .rueda-col div {
+    height: var(--alto);
+    line-height: var(--alto);
+    text-align: center;
+    scroll-snap-align: center;
+    font-size: 1.35rem;
+    color: #b8bcc2;
+    cursor: pointer;
+    user-select: none;
+  }
+  .rueda-col.periodo div { font-size: 1.05rem; }
+  .rueda-col div.sel { color: var(--texto); font-weight: 700; }
+  .rueda-col div.relleno { scroll-snap-align: none; cursor: default; }
+  .rueda-sep { align-self: center; font-size: 1.35rem; font-weight: 700; position: relative; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--acento); }
+  input.malo, select.malo { border-color: var(--error); background: var(--error-fondo); }
+
+  .pista { font-size: .85rem; color: var(--tenue); margin-top: 5px; }
+  .malo-texto { font-size: .85rem; color: var(--error); margin-top: 5px; font-weight: 600; }
+
+  .cuadre { font-size: .9rem; font-weight: 600; margin-top: 6px; color: var(--tenue); }
+  .cuadre.bien { color: var(--ok); }
+  .cuadre.mal  { color: var(--aviso-texto); }
+
+  /* Botones de opcion grandes, como el menu de la Torre de Control */
+  .opciones { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  .opciones.dos { grid-template-columns: 1fr 1fr; }
+  .opcion {
+    padding: 20px 10px;
+    border: 2px solid var(--borde);
+    border-radius: 16px;
+    background: #f8f9fa;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--texto);
+    cursor: pointer;
+    transition: transform .15s, background .2s, border-color .2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .03);
+  }
+  .opcion:active { transform: scale(.98); }
+  .opcion.elegida { background: var(--acento); border-color: var(--acento); color: #fff; }
+
+  .referencia {
+    background: var(--acento-fondo);
+    border-left: 4px solid var(--acento);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: .95rem;
+  }
+  .referencia strong { display: block; margin-bottom: 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: var(--tenue); }
+  .referencia span { display: inline-block; margin-right: 16px; }
+  .referencia b { font-size: 1.1rem; }
+
+  /* Resumen antes de enviar */
+  .resumen { border: 1px solid var(--borde); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+  .resumen div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; font-size: .95rem; }
+  .resumen div:nth-child(odd) { background: #f8f9fa; }
+  .resumen dt { color: var(--tenue); }
+  .resumen dd { margin: 0; font-weight: 700; text-align: right; }
+
+  .boton {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: #fff;
+    background: var(--negro);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
+    transition: background .2s;
+  }
+  .boton:disabled { background: #999; cursor: default; box-shadow: none; }
+  .paso > .boton { margin-top: auto; }
+  .boton.wa { background: #128c7e; margin-bottom: 10px; }
+  .boton.secundario {
+    background: none;
+    color: var(--acento);
+    box-shadow: none;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .centrada { text-align: center; justify-content: center; }
+  .marca {
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; margin: 0 auto 18px;
+    background: var(--ok-fondo); color: var(--ok);
+  }
+  .marca.info { background: var(--acento-fondo); color: var(--acento); }
+  .centrada h2 { margin-bottom: 8px; }
+  .centrada p  { margin: 0 0 26px; color: var(--tenue); }
+
+  /* --- Ventana de avisos --- */
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .modal.visible { opacity: 1; pointer-events: all; }
+  .modal-caja {
+    background: #fff;
+    padding: 24px;
+    border-radius: 16px;
+    width: 86%;
+    max-width: 340px;
+    text-align: center;
+    transform: scale(.85);
+    transition: transform .3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+  }
+  .modal.visible .modal-caja { transform: scale(1); }
+  .modal-icono { font-size: 2.6rem; margin-bottom: 6px; }
+  .modal-texto { font-weight: 600; margin-bottom: 20px; }
+  .modal-texto ul { text-align: left; margin: 10px 0 0; padding-left: 20px; font-weight: 500; font-size: .95rem; }
+  .modal-caja .boton { padding: 13px; font-size: 1rem; background: var(--error); box-shadow: none; }
+
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="modal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modalTexto">
+  <div class="modal-caja">
+    <div class="modal-icono" id="modalIcono">&#9888;&#65039;</div>
+    <div class="modal-texto" id="modalTexto"></div>
+    <button type="button" class="boton" id="modalBoton" onclick="cerrarModal()">Entendido</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button type="button" id="flecha" class="oculto" onclick="pasoAnterior()" aria-label="Regresar">&#8592;</button>
+    <h1>REPORTE DE RUTA</h1>
+    <p id="subtitulo">BDB Logística</p>
+  </header>
+  <div id="progreso"><div id="barra"></div></div>
+
+  <div class="contenido">
+
+    <!-- Cargando -->
+    <section class="paso activo centrada" id="p-cargando">
+      <p id="textoCargando">Cargando&hellip;</p>
+    </section>
+
+    <!-- Quien eres -->
+    <section class="paso" id="p-driver">
+      <div class="seccion">Identificación</div>
+      <h2>¿Quién eres?</h2>
+      <div class="campo">
+        <select id="DRIVER" name="DRIVER" aria-label="Tu nombre"></select>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="pista">Selecciona tu nombre para continuar.</div>
+      <button type="button" class="boton" id="botonContinuar" onclick="continuarDriver()">Continuar</button>
+    </section>
+
+    <!-- ===== Envio inicial ===== -->
+
+    <section class="paso" id="p-cedis">
+      <div class="seccion">Ubicación</div>
+      <h2>¿En qué CEDIS estás?</h2>
+      <div class="opciones dos" id="opcionesCedis"></div>
+      <input type="hidden" id="CEDIS" name="CEDIS">
+    </section>
+
+    <section class="paso" id="p-auxiliar">
+      <div class="seccion">Personal</div>
+      <h2>¿La ruta tiene auxiliar?</h2>
+      <div class="opciones dos">
+        <button type="button" class="opcion" data-aux="NO" onclick="elegirAuxiliar('NO')">No</button>
+        <button type="button" class="opcion" data-aux="Sí" onclick="elegirAuxiliar('Sí')">Sí</button>
+      </div>
+      <input type="hidden" id="TIENE_AUXILIAR" name="TIENE_AUXILIAR">
+      <div class="campo oculto" id="campoAuxiliar" style="margin-top: 22px;">
+        <label for="NOMBRE_AUXILIAR">Nombre del auxiliar</label>
+        <select id="NOMBRE_AUXILIAR" name="NOMBRE_AUXILIAR"></select>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton oculto" id="botonAuxiliar" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-vehiculo">
+      <div class="seccion">Datos de ruta</div>
+      <h2>Vehículo y ruta</h2>
+      <div class="campo">
+        <label for="PLACAS_LISTA">Placas</label>
+        <select id="PLACAS_LISTA" class="oculto"></select>
+        <input type="text" id="PLACAS" name="PLACAS" autocomplete="off" autocapitalize="characters" placeholder="Escribe la placa">
+        <div class="pista oculto" id="pistaPlacaNueva">Escríbela tal como aparece en el vehículo.</div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="ZONA_RUTA">Zona de ruta</label>
+        <input type="text" id="ZONA_RUTA" name="ZONA_RUTA" autocomplete="off">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="ID_RUTA">ID de ruta</label>
+        <input type="text" id="ID_RUTA" name="ID_RUTA" autocomplete="off" autocapitalize="characters">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-horas">
+      <div class="seccion">Registro</div>
+      <h2>Horas de la mañana</h2>
+      <div class="campo">
+        <label for="HR_LLEGADA_BO">Llegada a BO</label>
+        <input type="hidden" id="HR_LLEGADA_BO" name="HR_LLEGADA_BO">
+        <div class="rueda" data-para="HR_LLEGADA_BO"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_ENTRADA_BO">Entrada a BO</label>
+        <input type="hidden" id="HR_ENTRADA_BO" name="HR_ENTRADA_BO">
+        <div class="rueda" data-para="HR_ENTRADA_BO"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_SALIDA_BOD">Salida de BOD</label>
+        <input type="hidden" id="HR_SALIDA_BOD" name="HR_SALIDA_BOD">
+        <div class="rueda" data-para="HR_SALIDA_BOD"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="HR_PE">Primera entrega</label>
+        <input type="hidden" id="HR_PE" name="HR_PE">
+        <div class="rueda" data-para="HR_PE"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-carga">
+      <div class="seccion">Medición</div>
+      <h2>Carga y kilometraje</h2>
+      <div class="campo">
+        <label for="SPR">SPR</label>
+        <input type="number" id="SPR" name="SPR" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="CANT_PAR">CANT. PAR.</label>
+        <input type="number" id="CANT_PAR" name="CANT_PAR" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="CANT_UBI">CANT. UBI.</label>
+        <input type="number" id="CANT_UBI" name="CANT_UBI" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="KM_INICIAL">KM inicial</label>
+        <input type="number" id="KM_INICIAL" name="KM_INICIAL" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-revisar-inicial">
+      <div class="seccion">Confirmación</div>
+      <h2>Revisa tu reporte</h2>
+      <dl class="resumen" id="resumenInicial"></dl>
+      <button type="button" class="boton" id="botonInicial" onclick="enviarInicial()">ENVIAR REPORTE INICIAL</button>
+    </section>
+
+    <!-- ===== Envio final ===== -->
+
+    <section class="paso" id="p-ue">
+      <div class="seccion">Cierre</div>
+      <h2>Última entrega</h2>
+      <div class="referencia">
+        <strong>De tu reporte de la mañana</strong>
+        <span>SPR: <b id="refSPR">—</b></span>
+        <span>KM inicial: <b id="refKM">—</b></span>
+      </div>
+      <div class="campo">
+        <label for="HR_UE">Hora de última entrega</label>
+        <input type="hidden" id="HR_UE" name="HR_UE">
+        <div class="rueda" data-para="HR_UE"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-paquetes">
+      <div class="seccion">Paquetes</div>
+      <h2>¿Cómo te fue?</h2>
+      <div class="campo">
+        <label for="ENTREGADOS">Entregados</label>
+        <input type="number" id="ENTREGADOS" name="ENTREGADOS" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="DEVOLUCIONES">Devoluciones</label>
+        <input type="number" id="DEVOLUCIONES" name="DEVOLUCIONES" inputmode="numeric" min="0" step="1">
+        <div class="cuadre" id="cuadreSPR"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-desglose">
+      <div class="seccion">Devoluciones</div>
+      <h2>Desglose de devoluciones</h2>
+      <div class="campo">
+        <label for="NO_VISITADO">No visitado</label>
+        <input type="number" id="NO_VISITADO" name="NO_VISITADO" inputmode="numeric" min="0" step="1">
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="VISITADO">Visitado</label>
+        <input type="number" id="VISITADO" name="VISITADO" inputmode="numeric" min="0" step="1">
+        <div class="cuadre" id="cuadreDev"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-km">
+      <div class="seccion">Medición</div>
+      <h2>Kilometraje final</h2>
+      <div class="campo">
+        <label for="KM_FINAL">KM final</label>
+        <input type="number" id="KM_FINAL" name="KM_FINAL" inputmode="numeric" min="0" step="1">
+        <div class="cuadre" id="cuadreKM"></div>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <div class="campo">
+        <label for="MOTIVO">Motivo (opcional)</label>
+        <textarea id="MOTIVO" name="MOTIVO" rows="3" placeholder="Por qué hubo devoluciones…" autocapitalize="characters" style="text-transform: uppercase"></textarea>
+        <div class="malo-texto oculto"></div>
+      </div>
+      <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
+    </section>
+
+    <section class="paso" id="p-revisar-final">
+      <div class="seccion">Confirmación</div>
+      <h2>Revisa tu reporte</h2>
+      <dl class="resumen" id="resumenFinal"></dl>
+      <button type="button" class="boton" id="botonFinal" onclick="enviarFinal()">ENVIAR REPORTE FINAL</button>
+    </section>
+
+    <!-- ===== Pantallas de cierre ===== -->
+
+    <section class="paso centrada" id="p-completo">
+      <div class="marca info">&#10003;</div>
+      <h2>Ya estás al corriente</h2>
+      <p>Ya mandaste tus dos reportes de hoy. No tienes nada pendiente.</p>
+      <button type="button" class="boton" onclick="location.reload()">Volver al inicio</button>
+    </section>
+
+    <section class="paso centrada" id="p-ok">
+      <div class="marca">&check;</div>
+      <h2>Reporte enviado</h2>
+      <p id="textoOk"></p>
+      <a id="botonWhatsApp" class="boton wa oculto" target="_blank" rel="noopener">Compartir en WhatsApp</a>
+      <p class="pista" id="pistaWhatsApp">Se abre WhatsApp con el mensaje ya escrito. Elige el grupo y envía.</p>
+      <button type="button" class="boton secundario" onclick="location.reload()">Volver al inicio</button>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  /**
+   * Solo se llena en la copia que se sube al hosting propio: la liga /exec de
+   * la implementacion de Apps Script. Servida desde Google se queda vacia y
+   * no se usa. En el repositorio va vacia porque es publico.
+   */
+  var URL_API = 'https://script.google.com/macros/s/AKfycbwA3n5Uas_6Ot1KfHpaFVRUF_RGNao_upHxTrkIQWNHDuJUsSfYw9ac1RyQ476IF9TMVQ/exec';
+
+  var FLUJO_INICIAL = ['p-driver', 'p-cedis', 'p-auxiliar', 'p-vehiculo', 'p-horas', 'p-carga', 'p-revisar-inicial'];
+  var FLUJO_FINAL   = ['p-driver', 'p-ue', 'p-paquetes', 'p-desglose', 'p-km', 'p-revisar-final'];
+
+  // Que campos revisa cada paso antes de avanzar
+  var CAMPOS_PASO = {
+    'p-cedis':    ['CEDIS'],
+    'p-auxiliar': ['TIENE_AUXILIAR', 'NOMBRE_AUXILIAR'],
+    'p-vehiculo': ['PLACAS', 'ZONA_RUTA', 'ID_RUTA'],
+    'p-horas':    ['HR_LLEGADA_BO', 'HR_ENTRADA_BO', 'HR_SALIDA_BOD', 'HR_PE'],
+    'p-carga':    ['SPR', 'CANT_PAR', 'CANT_UBI', 'KM_INICIAL'],
+    'p-ue':       ['HR_UE'],
+    'p-paquetes': ['ENTREGADOS', 'DEVOLUCIONES'],
+    'p-desglose': ['NO_VISITADO', 'VISITADO'],
+    'p-km':       ['KM_FINAL', 'MOTIVO']
+  };
+
+  var CLAVES_INICIAL = ['CEDIS','TIENE_AUXILIAR','NOMBRE_AUXILIAR','PLACAS',
+                        'HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE',
+                        'ZONA_RUTA','ID_RUTA','SPR','CANT_PAR','CANT_UBI','KM_INICIAL'];
+
+  var CLAVES_FINAL = ['HR_UE','ENTREGADOS','DEVOLUCIONES','NO_VISITADO','VISITADO','KM_FINAL','MOTIVO'];
+  var OPCIONALES = ['MOTIVO'];
+
+  var ORDEN_HORAS = ['HR_LLEGADA_BO','HR_ENTRADA_BO','HR_SALIDA_BOD','HR_PE'];
+  var ETIQUETAS = {
+    CEDIS: 'CEDIS',
+    TIENE_AUXILIAR: 'si la ruta tiene auxiliar',
+    NOMBRE_AUXILIAR: 'Nombre del auxiliar',
+    PLACAS: 'Placas',
+    ZONA_RUTA: 'Zona de ruta',
+    ID_RUTA: 'ID de ruta',
+    HR_LLEGADA_BO: 'Hora de llegada a BO',
+    HR_ENTRADA_BO: 'Hora de entrada a BO',
+    HR_SALIDA_BOD: 'Hora de salida de BOD',
+    HR_PE: 'Hora de primera entrega',
+    SPR: 'SPR',
+    CANT_PAR: 'CANT. PAR.',
+    CANT_UBI: 'CANT. UBI.',
+    KM_INICIAL: 'KM inicial',
+    HR_UE: 'Hora de última entrega',
+    ENTREGADOS: 'Entregados',
+    DEVOLUCIONES: 'Devoluciones',
+    NO_VISITADO: 'No visitado',
+    VISITADO: 'Visitado',
+    KM_FINAL: 'KM final',
+    MOTIVO: 'Motivo'
+  };
+  var ETIQUETAS_HORA = {
+    HR_LLEGADA_BO: 'llegada a BO',
+    HR_ENTRADA_BO: 'entrada a BO',
+    HR_SALIDA_BOD: 'salida de BOD',
+    HR_PE: 'primera entrega'
+  };
+
+  var driver = '';
+  var referencia = {};
+  var flujo = [];
+  var indice = 0;
+  var actual = 'p-cargando';
+
+  function $(id) { return document.getElementById(id); }
+  function valor(id) { return ($(id).value || '').trim(); }
+
+  // --- Navegacion entre pasos ---
+
+  function irA(id, haciaAtras) {
+    if (id === actual) return;
+    var viejo = $(actual);
+    viejo.classList.remove('activo');
+    viejo.classList.toggle('atras', !haciaAtras);
+    var nuevo = $(id);
+    nuevo.classList.remove('atras');
+    nuevo.classList.add('activo');
+    nuevo.scrollTop = 0;
+    actual = id;
+
+    var enFlujo = flujo.indexOf(id);
+    $('flecha').classList.toggle('oculto', enFlujo <= 0);
+    $('barra').style.width = enFlujo < 0 ? (id === 'p-ok' || id === 'p-completo' ? '100%' : '0')
+                                         : Math.round(enFlujo / (flujo.length - 1) * 100) + '%';
+  }
+
+  function pasoSiguiente() {
+    if (indice < flujo.length - 1) {
+      indice++;
+      var id = flujo[indice];
+      if (id === 'p-revisar-inicial') armarResumenInicial();
+      if (id === 'p-revisar-final') armarResumenFinal();
+      irA(id, false);
+    }
+  }
+
+  function pasoAnterior() {
+    if (indice <= 0) return;
+    indice--;
+    if (flujo[indice] === 'p-driver') {
+      // Regresar al nombre es cambiar de chofer: empezar limpio
+      location.reload();
+      return;
+    }
+    irA(flujo[indice], true);
+  }
+
+  // Enter o "Ir" en el teclado del celular avanza al siguiente paso
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' || ev.target.tagName === 'TEXTAREA') return;
+    var paso = $(actual);
+    var boton = paso.querySelector('.boton:not(.oculto):not(.secundario)');
+    if (boton && !boton.disabled && paso.contains(ev.target)) {
+      ev.preventDefault();
+      boton.click();
+    }
+  });
+
+  // --- Ventana de avisos ---
+
+  function mostrarModal(html, tipo) {
+    $('modalTexto').innerHTML = html;
+    $('modalIcono').innerHTML = tipo === 'info' ? '&#8505;&#65039;' : '&#9888;&#65039;';
+    $('modalBoton').style.background = tipo === 'info' ? 'var(--acento)' : 'var(--error)';
+    $('modal').classList.add('visible');
+    $('modalBoton').focus();
+  }
+
+  function cerrarModal() { $('modal').classList.remove('visible'); }
+
+  function escapar(t) {
+    return String(t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function mostrarFallas(fallas) {
+    mostrarModal('Revisa lo siguiente:<ul>' +
+      fallas.map(function (f) { return '<li>' + escapar(f) + '</li>'; }).join('') + '</ul>', 'error');
+  }
+
+  // --- Utilidades ---
+
+  function llenarSelect(sel, opciones, textoVacio) {
+    sel.innerHTML = '';
+    var vacio = document.createElement('option');
+    vacio.value = '';
+    vacio.textContent = textoVacio;
+    sel.appendChild(vacio);
+    opciones.forEach(function (o) {
+      var op = document.createElement('option');
+      op.value = o;
+      op.textContent = o;
+      sel.appendChild(op);
+    });
+  }
+
+  function aMinutos(hhmm) {
+    var p = hhmm.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
+
+  function entero(id) {
+    var v = valor(id);
+    if (!/^\d+$/.test(v)) return null;
+    return parseInt(v, 10);
+  }
+
+  function limpiarMarcas(claves) {
+    claves.forEach(function (c) {
+      var el = $(c);
+      if (!el) return;
+      el.parentNode.querySelectorAll('.malo').forEach(function (x) { x.classList.remove('malo'); });
+      var m = el.parentNode.querySelector('.malo-texto');
+      if (m) { m.textContent = ''; m.classList.add('oculto'); }
+    });
+  }
+
+  function marcar(clave, mensaje) {
+    var el = $(clave);
+    if (!el) return;
+    // Si el campo esta escondido (la placa elegida de la lista), se marca lo
+    // que el chofer si ve.
+    var escondido = el.classList.contains('oculto') || el.type === 'hidden';
+    var visible = escondido
+      ? el.parentNode.querySelector('.rueda, select:not(.oculto), input:not(.oculto):not([type="hidden"])') || el
+      : el;
+    visible.classList.add('malo');
+    var m = el.parentNode.querySelector('.malo-texto');
+    if (m) { m.textContent = mensaje; m.classList.remove('oculto'); }
+  }
+
+  /**
+   * Deja listo el boton para compartir al grupo. wa.me abre WhatsApp con el
+   * mensaje escrito, pero es el chofer quien elige el grupo y envia: no existe
+   * forma oficial de publicar en un grupo sin que alguien lo mande.
+   */
+  function prepararWhatsApp(resumen) {
+    var boton = $('botonWhatsApp');
+    if (!resumen) {
+      boton.classList.add('oculto');
+      $('pistaWhatsApp').classList.add('oculto');
+      return;
+    }
+    boton.href = 'https://wa.me/?text=' + encodeURIComponent(resumen);
+    boton.classList.remove('oculto');
+    $('pistaWhatsApp').classList.remove('oculto');
+  }
+
+  // --- Conexion con Apps Script ---
+
+  /**
+   * Llama una funcion del servidor y regresa una promesa.
+   *
+   * Servida desde Google la pantalla tiene google.script.run. En el hosting
+   * propio no existe, y se usa fetch contra doPost. El tipo text/plain es a
+   * proposito: con application/json el navegador primero pregunta permiso
+   * (preflight) y Apps Script no sabe contestar esa pregunta.
+   */
+  function servidor(funcion, args) {
+    return new Promise(function (resolver, rechazar) {
+      if (window.google && google.script && google.script.run) {
+        var llamada = google.script.run.withSuccessHandler(resolver).withFailureHandler(rechazar);
+        llamada[funcion].apply(llamada, args || []);
+        return;
+      }
+
+      if (!URL_API) {
+        rechazar(new Error('Falta pegar la liga de Apps Script en URL_API.'));
+        return;
+      }
+
+      fetch(URL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ funcion: funcion, args: args || [] })
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('El servidor respondió ' + r.status + '.');
+          return r.text();
+        })
+        .then(function (texto) {
+          var res;
+          // Si la implementacion no es de acceso para cualquier usuario, Google
+          // contesta con su pantalla de inicio de sesion en vez de JSON.
+          try { res = JSON.parse(texto); } catch (e) {
+            throw new Error('El servidor no contestó con datos. Revisa que la implementación esté publicada para "Cualquier usuario".');
+          }
+          if (res.error) throw new Error(res.error);
+          resolver(res.resultado);
+        })
+        .catch(function (e) {
+          rechazar(e instanceof TypeError
+            ? new Error('Sin conexión con el servidor. Revisa tu señal e intenta de nuevo.')
+            : e);
+        });
+    });
+  }
+
+  // --- Arranque ---
+
+  /**
+   * Lo que se guarda en el celular para arrancar rapido: la ultima lista de
+   * choferes y el nombre del chofer. localStorage puede no existir o fallar
+   * (navegacion privada, datos bloqueados), y la pantalla funciona igual.
+   */
+  function leerLocal(clave) {
+    try { return JSON.parse(localStorage.getItem(clave)); } catch (e) { return null; }
+  }
+
+  function guardarLocal(clave, v) {
+    try { localStorage.setItem(clave, JSON.stringify(v)); } catch (e) {}
+  }
+
+  var catalogosPintados = '';
+
+  /** Se puede llamar dos veces: con la lista guardada y con la que llega fresca. */
+  function pintarCatalogos(cat) {
+    var huella = JSON.stringify(cat);
+    if (huella === catalogosPintados) return;
+    catalogosPintados = huella;
+
+    [['DRIVER', 'Selecciona tu nombre…'], ['NOMBRE_AUXILIAR', 'Selecciona al auxiliar…']].forEach(function (s) {
+      var antes = valor(s[0]);
+      llenarSelect($(s[0]), cat.drivers, s[1]);
+      if (cat.drivers.indexOf(antes) !== -1) $(s[0]).value = antes;
+    });
+
+    pintarPlacas(cat.placas);
+
+    var caja = $('opcionesCedis');
+    caja.innerHTML = '';
+    cat.cedis.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opcion';
+      b.classList.toggle('elegida', c === valor('CEDIS'));
+      b.textContent = c;
+      b.setAttribute('data-cedis', c);
+      b.onclick = function () { elegirCedis(c); };
+      caja.appendChild(b);
+    });
+  }
+
+  // --- Rueda de hora ---
+
+  var ALTO_RUEDA = 40;
+
+  function dosDigitos(n) { return n < 10 ? '0' + n : String(n); }
+
+  /** "21:43" -> "9:43 p.m.", como la muestra la rueda. */
+  function horaLegible(hhmm) {
+    var m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return hhmm || '';
+    var h = parseInt(m[1], 10);
+    return ((h % 12) || 12) + ':' + m[2] + (h < 12 ? ' a.m.' : ' p.m.');
+  }
+
+  /**
+   * Cada rueda llena el campo oculto de su hora en formato de 24 horas, que
+   * es lo que ya validan la pantalla y Apps Script.
+   *
+   * La hora que muestra al abrir no cuenta como respuesta hasta que el chofer
+   * mueve o toca la rueda. Si contara, bastaria con dar Siguiente para
+   * guardar cuatro horas iguales sin que nadie lo note.
+   */
+  function crearRueda(caja) {
+    var columnas = [
+      { valores: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], texto: String },
+      { valores: Array.apply(null, Array(60)).map(function (x, i) { return i; }), texto: dosDigitos },
+      { valores: ['a.m.', 'p.m.'], texto: String, clase: 'periodo' }
+    ];
+
+    caja.columnas = columnas.map(function (col, n) {
+      var el = document.createElement('div');
+      el.className = 'rueda-col' + (col.clase ? ' ' + col.clase : '');
+      var html = '<div class="relleno"></div><div class="relleno"></div>';
+      col.valores.forEach(function (v, i) { html += '<div data-i="' + i + '">' + col.texto(v) + '</div>'; });
+      el.innerHTML = html + '<div class="relleno"></div><div class="relleno"></div>';
+      caja.appendChild(el);
+      if (n === 0) {
+        var sep = document.createElement('div');
+        sep.className = 'rueda-sep';
+        sep.textContent = ':';
+        caja.appendChild(sep);
+      }
+
+      var espera;
+      el.addEventListener('scroll', function () {
+        resaltar(el);
+        clearTimeout(espera);
+        espera = setTimeout(function () { if (caja.tocada) leerRueda(caja); }, 120);
+      });
+      ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) {
+        el.addEventListener(ev, function () { caja.tocada = true; }, { passive: true });
+      });
+      // Un toque sin mover tambien elige: la hora que se ve es la buena.
+      el.addEventListener('click', function (e) {
+        caja.tocada = true;
+        var i = e.target.getAttribute('data-i');
+        if (i !== null) el.scrollTo({ top: Number(i) * ALTO_RUEDA, behavior: 'smooth' });
+        leerRueda(caja);
+      });
+      return el;
+    });
+  }
+
+  function indiceDe(col) {
+    var total = col.querySelectorAll('[data-i]').length;
+    return Math.max(0, Math.min(total - 1, Math.round(col.scrollTop / ALTO_RUEDA)));
+  }
+
+  function resaltar(col) {
+    var i = indiceDe(col);
+    col.querySelectorAll('[data-i]').forEach(function (d, n) { d.classList.toggle('sel', n === i); });
+  }
+
+  function leerRueda(caja) {
+    var hora = indiceDe(caja.columnas[0]) + 1;
+    var minuto = indiceDe(caja.columnas[1]);
+    var tarde = indiceDe(caja.columnas[2]) === 1;
+    var id = caja.getAttribute('data-para');
+    var nuevo = dosDigitos((hora % 12) + (tarde ? 12 : 0)) + ':' + dosDigitos(minuto);
+    var cambio = $(id).value !== nuevo;
+    $(id).value = nuevo;
+    caja.classList.add('elegida');
+    limpiarMarcas([id]);
+
+    // La siguiente hora de la manana casi siempre es poco despues: se le
+    // acerca la rueda, sin darla por contestada.
+    var siguiente = ORDEN_HORAS[ORDEN_HORAS.indexOf(id) + 1];
+    var cajaSig = siguiente && document.querySelector('.rueda[data-para="' + siguiente + '"]');
+    if (cambio && cajaSig && !cajaSig.tocada) ponerRueda(cajaSig, nuevo);
+  }
+
+  function ponerRueda(caja, hhmm) {
+    var p = hhmm.split(':');
+    var h = parseInt(p[0], 10);
+    var indices = [((h % 12) || 12) - 1, parseInt(p[1], 10), h < 12 ? 0 : 1];
+    caja.columnas.forEach(function (col, n) {
+      col.scrollTop = indices[n] * ALTO_RUEDA;
+      resaltar(col);
+    });
+  }
+
+  var ahora = new Date();
+  var horaActual = dosDigitos(ahora.getHours()) + ':' + dosDigitos(ahora.getMinutes());
+  document.querySelectorAll('.rueda').forEach(function (caja) {
+    crearRueda(caja);
+    ponerRueda(caja, horaActual);
+  });
+
+  // --- Placas ---
+
+  var OTRA_PLACA = '__otra__';
+
+  /**
+   * La placa se elige de la lista, o con "Otra" se escribe una nueva. El valor
+   * que se envia siempre es el del campo PLACAS: la lista solo lo llena.
+   * Sin lista (la pestania PLACAS no existe o la lista guardada en el celular
+   * es de antes) queda solo el campo, como antes.
+   */
+  function pintarPlacas(placas) {
+    var lista = $('PLACAS_LISTA');
+    var campo = $('PLACAS');
+    if (!placas || !placas.length) {
+      lista.classList.add('oculto');
+      campo.classList.remove('oculto');
+      $('pistaPlacaNueva').classList.add('oculto');
+      return;
+    }
+
+    var antes = valor('PLACAS');
+    llenarSelect(lista, placas, 'Selecciona la placa…');
+    var otra = document.createElement('option');
+    otra.value = OTRA_PLACA;
+    otra.textContent = 'Otra (no está en la lista)';
+    lista.appendChild(otra);
+    lista.classList.remove('oculto');
+
+    if (antes && placas.indexOf(antes.toUpperCase()) === -1) {
+      lista.value = OTRA_PLACA;
+    } else {
+      lista.value = antes ? antes.toUpperCase() : '';
+    }
+    mostrarPlacaNueva(lista.value === OTRA_PLACA);
+  }
+
+  function mostrarPlacaNueva(si) {
+    $('PLACAS').classList.toggle('oculto', !si);
+    $('pistaPlacaNueva').classList.toggle('oculto', !si);
+  }
+
+  $('PLACAS_LISTA').addEventListener('change', function () {
+    var nueva = this.value === OTRA_PLACA;
+    $('PLACAS').value = nueva ? '' : this.value;
+    mostrarPlacaNueva(nueva);
+    limpiarMarcas(['PLACAS']);
+    if (nueva) $('PLACAS').focus();
+  });
+
+  /**
+   * Casi siempre el celular es de un solo chofer. Si ya se sabe quien es, se
+   * pregunta que le toca desde ahora, mientras el lee la pantalla, y no hasta
+   * que toque Continuar.
+   */
+  var estadoAdelantado = null;
+
+  function adelantarEstado(nombre) {
+    var promesa = servidor('estadoDelDia', [nombre]);
+    promesa.catch(function () {}); // si falla, continuarDriver vuelve a preguntar
+    estadoAdelantado = { driver: nombre, promesa: promesa };
+  }
+
+  function arrancar(cat) {
+    pintarCatalogos(cat);
+    if (actual !== 'p-cargando') return;
+
+    var recordado = leerLocal('driver');
+    if (recordado && cat.drivers.indexOf(recordado) !== -1) {
+      $('DRIVER').value = recordado;
+      adelantarEstado(recordado);
+    }
+
+    flujo = ['p-driver'];
+    indice = 0;
+    irA('p-driver', false);
+  }
+
+  var guardados = leerLocal('catalogos');
+  if (guardados && guardados.drivers && guardados.cedis) arrancar(guardados);
+
+  var avisoLento = setTimeout(function () {
+    if (actual === 'p-cargando') {
+      $('textoCargando').innerHTML = 'Cargando&hellip;<br>La primera vez del día puede tardar unos segundos.';
+    }
+  }, 4000);
+
+  servidor('obtenerCatalogos')
+    .then(function (cat) {
+      clearTimeout(avisoLento);
+      guardarLocal('catalogos', cat);
+      arrancar(cat);
+    })
+    .catch(function (e) {
+      clearTimeout(avisoLento);
+      // Si ya se mostro la lista guardada, el chofer puede seguir: el servidor
+      // vuelve a validar al enviar.
+      if (actual !== 'p-cargando') return;
+      $('textoCargando').innerHTML = '<strong>No se pudieron cargar los catálogos.</strong><br>' + escapar(e.message);
+    });
+
+  // --- Quien eres ---
+
+  $('DRIVER').addEventListener('change', function () {
+    if (this.value) continuarDriver();
+  });
+
+  function continuarDriver() {
+    limpiarMarcas(['DRIVER']);
+    var elegido = valor('DRIVER');
+    if (!elegido) {
+      marcar('DRIVER', 'Selecciona tu nombre para continuar.');
+      return;
+    }
+
+    var boton = $('botonContinuar');
+    if (boton.disabled) return;
+    boton.disabled = true;
+    boton.textContent = 'Revisando…';
+
+    var consulta;
+    if (estadoAdelantado && estadoAdelantado.driver === elegido) {
+      consulta = estadoAdelantado.promesa.catch(function () {
+        return servidor('estadoDelDia', [elegido]);
+      });
+    } else {
+      consulta = servidor('estadoDelDia', [elegido]);
+    }
+    estadoAdelantado = null;
+
+    consulta
+      .then(function (res) {
+        driver = elegido;
+        guardarLocal('driver', elegido);
+        boton.disabled = false;
+        boton.textContent = 'Continuar';
+
+        if (res.estado === 'falta_inicial') {
+          $('subtitulo').textContent = elegido + ' · Reporte inicial';
+          flujo = FLUJO_INICIAL;
+          indice = 0;
+          pasoSiguiente();
+        } else if (res.estado === 'falta_final') {
+          referencia = res.referencia || {};
+          $('subtitulo').textContent = elegido + ' · Reporte final';
+          $('refSPR').textContent = referencia.SPR;
+          $('refKM').textContent = referencia.KM_INICIAL;
+          actualizarCuadres();
+          flujo = FLUJO_FINAL;
+          indice = 0;
+          pasoSiguiente();
+        } else {
+          $('subtitulo').textContent = elegido;
+          flujo = [];
+          irA('p-completo', false);
+        }
+      })
+      .catch(function (e) {
+        marcar('DRIVER', 'No se pudo revisar: ' + e.message);
+        boton.disabled = false;
+        boton.textContent = 'Continuar';
+      });
+  }
+
+  // --- Opciones con botones ---
+
+  function elegirCedis(c) {
+    $('CEDIS').value = c;
+    document.querySelectorAll('[data-cedis]').forEach(function (b) {
+      b.classList.toggle('elegida', b.getAttribute('data-cedis') === c);
+    });
+    setTimeout(pasoSiguiente, 250);
+  }
+
+  function elegirAuxiliar(v) {
+    $('TIENE_AUXILIAR').value = v;
+    document.querySelectorAll('[data-aux]').forEach(function (b) {
+      b.classList.toggle('elegida', b.getAttribute('data-aux') === v);
+    });
+    var hay = v === 'Sí';
+    $('campoAuxiliar').classList.toggle('oculto', !hay);
+    $('botonAuxiliar').classList.toggle('oculto', !hay);
+    if (!hay) {
+      $('NOMBRE_AUXILIAR').value = '';
+      limpiarMarcas(['NOMBRE_AUXILIAR']);
+      setTimeout(pasoSiguiente, 250);
+    }
+  }
+
+  // --- Revision de cada paso ---
+
+  function fallasDelPaso(paso) {
+    var campos = CAMPOS_PASO[paso] || [];
+    limpiarMarcas(campos);
+    var fallas = [];
+    var auxiliar = valor('TIENE_AUXILIAR') === 'Sí';
+
+    campos.forEach(function (c) {
+      if (OPCIONALES.indexOf(c) !== -1) return;
+      if (c === 'NOMBRE_AUXILIAR' && !auxiliar) return;
+      if (!valor(c)) {
+        marcar(c, 'Este dato es obligatorio.');
+        fallas.push(('Falta ' + ETIQUETAS[c] + '.').replace('..', '.'));
+      }
+    });
+
+    if (paso === 'p-auxiliar' && auxiliar && valor('NOMBRE_AUXILIAR') === driver) {
+      marcar('NOMBRE_AUXILIAR', 'No puedes ser tu propio auxiliar.');
+      fallas.push('El auxiliar no puede ser el mismo driver.');
+    }
+
+    if (paso === 'p-horas' && ORDEN_HORAS.every(function (c) { return valor(c); })) {
+      for (var i = 1; i < ORDEN_HORAS.length; i++) {
+        if (aMinutos(valor(ORDEN_HORAS[i])) < aMinutos(valor(ORDEN_HORAS[i - 1]))) {
+          marcar(ORDEN_HORAS[i], 'No puede ser antes de la hora de ' + ETIQUETAS_HORA[ORDEN_HORAS[i - 1]] + '.');
+          fallas.push('Las horas no van en orden.');
+          break;
+        }
+      }
+    }
+
+    var spr = Number(referencia.SPR) || 0;
+    var kmi = Number(referencia.KM_INICIAL) || 0;
+
+    if (paso === 'p-ue' && valor('HR_UE') && referencia.HR_PE &&
+        aMinutos(valor('HR_UE')) < aMinutos(referencia.HR_PE)) {
+      marcar('HR_UE', 'No puede ser antes de la primera entrega (' + horaLegible(referencia.HR_PE) + ').');
+      fallas.push('La última entrega es antes que la primera.');
+    }
+
+    if (paso === 'p-paquetes') {
+      var ent = entero('ENTREGADOS');
+      var dev = entero('DEVOLUCIONES');
+      if (ent !== null && dev !== null && ent + dev !== spr) {
+        marcar('DEVOLUCIONES', 'Entregados más devoluciones deben sumar ' + spr + '.');
+        fallas.push('Entregados más devoluciones suman ' + (ent + dev) + ' y el SPR es ' + spr + '.');
+      }
+    }
+
+    if (paso === 'p-desglose') {
+      var d = entero('DEVOLUCIONES');
+      var nov = entero('NO_VISITADO');
+      var vis = entero('VISITADO');
+      if (nov !== null && vis !== null && d !== null && nov + vis !== d) {
+        marcar('VISITADO', 'No visitado más visitado deben sumar ' + d + '.');
+        fallas.push('El desglose suma ' + (nov + vis) + ' y las devoluciones son ' + d + '.');
+      }
+    }
+
+    if (paso === 'p-km') {
+      var kmf = entero('KM_FINAL');
+      if (kmf !== null && kmf < kmi) {
+        marcar('KM_FINAL', 'No puede ser menor que el KM inicial (' + kmi + ').');
+        fallas.push('El KM final es menor que el inicial.');
+      }
+    }
+
+    return fallas;
+  }
+
+  function validarPaso() {
+    var fallas = fallasDelPaso(actual);
+    if (fallas.length) { mostrarFallas(fallas); return; }
+    pasoSiguiente();
+  }
+
+  // --- Cuadres en vivo del reporte final ---
+
+  function actualizarCuadres() {
+    var spr = Number(referencia.SPR) || 0;
+    var ent = entero('ENTREGADOS');
+    var dev = entero('DEVOLUCIONES');
+    var nov = entero('NO_VISITADO');
+    var vis = entero('VISITADO');
+    var kmf = entero('KM_FINAL');
+    var kmi = Number(referencia.KM_INICIAL) || 0;
+
+    var c1 = $('cuadreSPR');
+    if (ent === null || dev === null) {
+      c1.textContent = 'Entregados más devoluciones deben sumar ' + spr + '.';
+      c1.className = 'cuadre';
+    } else if (ent + dev === spr) {
+      c1.textContent = '✓ Cuadra con el SPR de ' + spr + '.';
+      c1.className = 'cuadre bien';
+    } else {
+      c1.textContent = 'Suman ' + (ent + dev) + ' y deben sumar ' + spr + '.';
+      c1.className = 'cuadre mal';
+    }
+
+    var c2 = $('cuadreDev');
+    if (dev === null || nov === null || vis === null) {
+      c2.textContent = dev === null ? 'No visitado más visitado deben sumar las devoluciones.'
+                                    : 'No visitado más visitado deben sumar ' + dev + '.';
+      c2.className = 'cuadre';
+    } else if (nov + vis === dev) {
+      c2.textContent = '✓ Cuadra con las ' + dev + ' devoluciones.';
+      c2.className = 'cuadre bien';
+    } else {
+      c2.textContent = 'Suman ' + (nov + vis) + ' y las devoluciones son ' + dev + '.';
+      c2.className = 'cuadre mal';
+    }
+
+    var c3 = $('cuadreKM');
+    if (kmf === null) {
+      c3.textContent = '';
+      c3.className = 'cuadre';
+    } else if (kmf < kmi) {
+      c3.textContent = 'No puede ser menor que el KM inicial (' + kmi + ').';
+      c3.className = 'cuadre mal';
+    } else {
+      c3.textContent = 'Recorriste ' + (kmf - kmi) + ' km.';
+      c3.className = 'cuadre bien';
+    }
+  }
+
+  ['ENTREGADOS','DEVOLUCIONES','NO_VISITADO','VISITADO','KM_FINAL'].forEach(function (id) {
+    $(id).addEventListener('input', actualizarCuadres);
+  });
+
+  // --- Resumen antes de enviar ---
+
+  function armarResumen(cajaId, filas) {
+    $(cajaId).innerHTML = filas.map(function (f) {
+      return '<div><dt>' + escapar(f[0]) + '</dt><dd>' + escapar(f[1] || '—') + '</dd></div>';
+    }).join('');
+  }
+
+  function armarResumenInicial() {
+    var aux = valor('TIENE_AUXILIAR') === 'Sí' ? valor('NOMBRE_AUXILIAR') : 'Sin auxiliar';
+    armarResumen('resumenInicial', [
+      ['CEDIS', valor('CEDIS')],
+      ['Auxiliar', aux],
+      ['Placas', valor('PLACAS')],
+      ['Zona de ruta', valor('ZONA_RUTA')],
+      ['ID de ruta', valor('ID_RUTA')],
+      ['Llegada a BO', horaLegible(valor('HR_LLEGADA_BO'))],
+      ['Entrada a BO', horaLegible(valor('HR_ENTRADA_BO'))],
+      ['Salida de BOD', horaLegible(valor('HR_SALIDA_BOD'))],
+      ['Primera entrega', horaLegible(valor('HR_PE'))],
+      ['SPR', valor('SPR')],
+      ['CANT. PAR.', valor('CANT_PAR')],
+      ['CANT. UBI.', valor('CANT_UBI')],
+      ['KM inicial', valor('KM_INICIAL')]
+    ]);
+  }
+
+  function armarResumenFinal() {
+    armarResumen('resumenFinal', [
+      ['Última entrega', horaLegible(valor('HR_UE'))],
+      ['Entregados', valor('ENTREGADOS')],
+      ['Devoluciones', valor('DEVOLUCIONES')],
+      ['No visitado', valor('NO_VISITADO')],
+      ['Visitado', valor('VISITADO')],
+      ['KM final', valor('KM_FINAL')],
+      ['Motivo', valor('MOTIVO')]
+    ]);
+  }
+
+  // --- Envios ---
+
+  /** Revisa todo el flujo de nuevo y lleva al primer paso con fallas. */
+  function revisarTodo() {
+    for (var i = 1; i < flujo.length; i++) {
+      var fallas = fallasDelPaso(flujo[i]);
+      if (fallas.length) {
+        indice = i;
+        irA(flujo[i], true);
+        mostrarFallas(fallas);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function terminar(res, texto) {
+    $('textoOk').textContent = texto;
+    prepararWhatsApp(res.resumen);
+    flujo = [];
+    irA('p-ok', false);
+  }
+
+  function enviarInicial() {
+    if (!revisarTodo()) return;
+
+    var datos = { DRIVER: driver };
+    CLAVES_INICIAL.forEach(function (c) { datos[c] = valor(c); });
+
+    var boton = $('botonInicial');
+    boton.disabled = true;
+    boton.textContent = 'Guardando… ⏳';
+
+    servidor('guardarInicial', [datos])
+      .then(function (res) {
+        boton.disabled = false;
+        boton.textContent = 'ENVIAR REPORTE INICIAL';
+        if (res.ok) {
+          terminar(res, res.mensaje + ' Al terminar la ruta vuelve a abrir esta liga para el reporte final.');
+        } else {
+          mostrarFallas(res.errores);
+        }
+      })
+      .catch(function (e) {
+        boton.disabled = false;
+        boton.textContent = 'ENVIAR REPORTE INICIAL';
+        mostrarFallas(['No se pudo enviar: ' + e.message]);
+      });
+  }
+
+  function enviarFinal() {
+    if (!revisarTodo()) return;
+
+    var datos = {};
+    CLAVES_FINAL.forEach(function (c) { datos[c] = valor(c); });
+
+    var boton = $('botonFinal');
+    boton.disabled = true;
+    boton.textContent = 'Guardando… ⏳';
+
+    servidor('guardarFinal', [driver, datos])
+      .then(function (res) {
+        boton.disabled = false;
+        boton.textContent = 'ENVIAR REPORTE FINAL';
+        if (res.ok) {
+          terminar(res, res.mensaje);
+        } else {
+          mostrarFallas(res.errores);
+        }
+      })
+      .catch(function (e) {
+        boton.disabled = false;
+        boton.textContent = 'ENVIAR REPORTE FINAL';
+        mostrarFallas(['No se pudo enviar: ' + e.message]);
+      });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<style>
+  :root {
+    --negro: #000000;
+    --acento: #0066ff;
+    --texto: #333333;
+    --tenue: #666666;
+    --borde: #e3e6ea;
+    --fondo: #f4f8fb;
+    --ok: #1f8f3a;
+    --wa: #25d366;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--texto);
+    font-size: 14px;
+  }
+  .oculto { display: none !important; }
+  .barra {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 2px; border-bottom: 1px solid var(--borde); margin-bottom: 10px;
+  }
+  .barra label { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+  .tenue { color: var(--tenue); }
+  .lista { max-height: 470px; overflow-y: auto; }
+  .item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 8px; border-radius: 8px; cursor: pointer;
+  }
+  .item:hover { background: var(--fondo); }
+  .item input { width: 18px; height: 18px; }
+  .item .nombre { font-weight: 600; flex: 1; }
+  .etiqueta {
+    font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+    background: #e8f0ff; color: var(--acento);
+  }
+  .etiqueta.final { background: #e6f4ea; color: var(--ok); }
+  .pie { display: flex; gap: 8px; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--borde); margin-top: 10px; }
+  button {
+    font: inherit; font-weight: 700; border: none; border-radius: 8px;
+    padding: 9px 16px; cursor: pointer; background: var(--negro); color: #fff;
+  }
+  button.secundario { background: #fff; color: var(--texto); border: 1px solid var(--borde); }
+  button.wa { background: var(--wa); color: #073b1c; }
+  button:disabled { opacity: .45; cursor: default; }
+  .tarjeta { border: 1px solid var(--borde); border-radius: 10px; padding: 10px; margin-bottom: 12px; }
+  .tarjeta .cabeza { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .tarjeta .cabeza .nombre { font-weight: 700; flex: 1; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; font: 13px/1.4 ui-monospace, Consolas, monospace;
+    border: 1px solid var(--borde); border-radius: 8px; padding: 8px; background: var(--fondo); color: var(--texto);
+  }
+  .acciones { display: flex; gap: 8px; margin-top: 8px; }
+  .aviso { padding: 30px 10px; text-align: center; color: var(--tenue); }
+</style>
+</head>
+<body>
+
+<div id="cargando" class="aviso">Cargando los mensajes de hoy…</div>
+
+<!-- Paso 1: elegir -->
+<div id="elegir" class="oculto">
+  <div class="barra">
+    <label><input type="checkbox" id="todos"> Seleccionar todos</label>
+    <span class="tenue" id="cuenta">0 seleccionados</span>
+  </div>
+  <div class="lista" id="lista"></div>
+  <div class="pie">
+    <button class="secundario" onclick="google.script.host.close()">Cerrar</button>
+    <button id="procesar" onclick="procesar()" disabled>Procesar</button>
+  </div>
+</div>
+
+<!-- Paso 2: copiar o abrir WhatsApp -->
+<div id="listos" class="oculto">
+  <div class="barra">
+    <span><b id="cuantos"></b> <span class="tenue">· cada uno como lo manda el chofer</span></span>
+    <button class="secundario" onclick="copiarTodos(this)">Copiar todos juntos</button>
+  </div>
+  <div class="lista" id="tarjetas"></div>
+  <div class="pie">
+    <button class="secundario" onclick="volver()">← Volver a elegir</button>
+    <button class="secundario" onclick="google.script.host.close()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+  var mensajes = [];
+
+  function $(id) { return document.getElementById(id); }
+
+  function escapar(t) {
+    return String(t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /** "21:43" -> "9:43 p.m.", igual que en la pantalla del chofer. */
+  function horaLegible(hhmm) {
+    var m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return hhmm || '';
+    var h = parseInt(m[1], 10);
+    return ((h % 12) || 12) + ':' + m[2] + (h < 12 ? ' a.m.' : ' p.m.');
+  }
+
+  google.script.run
+    .withSuccessHandler(function (lista) {
+      mensajes = lista;
+      $('cargando').classList.add('oculto');
+      if (!lista.length) {
+        $('cargando').textContent = 'Todavía no hay reportes de hoy.';
+        $('cargando').classList.remove('oculto');
+        return;
+      }
+      $('lista').innerHTML = lista.map(function (m, i) {
+        return '<label class="item">' +
+          '<input type="checkbox" data-i="' + i + '">' +
+          '<span class="nombre">' + escapar(m.driver) + '</span>' +
+          '<span class="etiqueta' + (m.tipo === 'Final' ? ' final' : '') + '">' + m.tipo + '</span>' +
+          '<span class="tenue">' + horaLegible(m.hora) + '</span>' +
+          '</label>';
+      }).join('');
+      $('elegir').classList.remove('oculto');
+    })
+    .withFailureHandler(function (e) {
+      $('cargando').textContent = 'No se pudieron cargar los mensajes: ' + e.message;
+    })
+    .mensajesDeHoy();
+
+  function elegidos() {
+    return Array.prototype.slice.call(document.querySelectorAll('#lista input:checked'))
+      .map(function (c) { return mensajes[Number(c.getAttribute('data-i'))]; });
+  }
+
+  function actualizarCuenta() {
+    var n = elegidos().length;
+    $('cuenta').textContent = n + (n === 1 ? ' seleccionado' : ' seleccionados');
+    $('procesar').disabled = !n;
+    $('todos').checked = n === mensajes.length;
+  }
+
+  $('lista').addEventListener('change', actualizarCuenta);
+  $('todos').addEventListener('change', function () {
+    var marcar = this.checked;
+    document.querySelectorAll('#lista input').forEach(function (c) { c.checked = marcar; });
+    actualizarCuenta();
+  });
+
+  function procesar() {
+    var lista = elegidos();
+    $('cuantos').textContent = lista.length + (lista.length === 1 ? ' mensaje' : ' mensajes');
+    $('tarjetas').innerHTML = lista.map(function (m, i) {
+      return '<div class="tarjeta">' +
+        '<div class="cabeza"><span class="nombre">' + escapar(m.driver) + '</span>' +
+        '<span class="etiqueta' + (m.tipo === 'Final' ? ' final' : '') + '">' + m.tipo + '</span></div>' +
+        '<textarea readonly id="texto' + i + '">' + escapar(m.texto) + '</textarea>' +
+        '<div class="acciones">' +
+        '<button class="secundario" onclick="copiar(' + i + ', this)">Copiar</button>' +
+        '<button class="wa" onclick="abrirWhatsApp(' + i + ')">Abrir en WhatsApp Web</button>' +
+        '</div></div>';
+    }).join('');
+    $('tarjetas').lista = lista;
+    $('elegir').classList.add('oculto');
+    $('listos').classList.remove('oculto');
+  }
+
+  function volver() {
+    $('listos').classList.add('oculto');
+    $('elegir').classList.remove('oculto');
+  }
+
+  /**
+   * El portapapeles moderno puede estar bloqueado dentro de la ventana de
+   * Sheets; si falla, se copia seleccionando el texto, que siempre funciona.
+   */
+  function copiarTexto(texto, boton) {
+    var listo = function () {
+      var antes = boton.textContent;
+      boton.textContent = 'Copiado ✓';
+      setTimeout(function () { boton.textContent = antes; }, 1500);
+    };
+    var aMano = function () {
+      var t = document.createElement('textarea');
+      t.value = texto;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      t.remove();
+      listo();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(listo, aMano);
+    } else {
+      aMano();
+    }
+  }
+
+  function copiar(i, boton) {
+    copiarTexto($('tarjetas').lista[i].texto, boton);
+  }
+
+  function copiarTodos(boton) {
+    copiarTexto($('tarjetas').lista.map(function (m) { return m.texto; }).join('\n\n'), boton);
+  }
+
+  /** WhatsApp Web abre con el mensaje escrito; ahi se elige el grupo y se envia. */
+  function abrirWhatsApp(i) {
+    var texto = $('tarjetas').lista[i].texto;
+    window.open('https://web.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank');
+  }
+</script>
+</body>
+</html>
