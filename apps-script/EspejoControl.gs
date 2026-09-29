@@ -160,6 +160,47 @@ function escribirFormulasFinales(control, filaControl) {
  * las columnas del envio final no van seguidas y entre ellas hay formulas,
  * asi que un bloque las borraria.
  */
+/**
+ * Lo que identifica a un reporte dentro de BD_AMAZON: driver, ID de ruta y KM
+ * inicial. Se lee una vez por vaciado.
+ */
+function indiceControl(control) {
+  const ultima = primeraFilaLibre(control) - 1;
+  const leer = function (letra) {
+    return ultima < 1 ? [] : control.getRange(1, columnaANumero(letra), ultima, 1).getValues()
+      .map(function (v) { return v[0]; });
+  };
+  return {
+    driver: leer(ESPEJO_INICIAL.DRIVER),
+    ruta: leer(ESPEJO_INICIAL.ID_RUTA),
+    km: leer(ESPEJO_INICIAL.KM_INICIAL),
+  };
+}
+
+function esSuRenglon(indice, fila, datos) {
+  const n = fila - 1;
+  if (n < 1 || n >= indice.driver.length) return false;
+  return llaveComparacion(indice.driver[n]) === llaveComparacion(datos.DRIVER) &&
+    String(indice.ruta[n]).trim().toUpperCase() === String(datos.ID_RUTA).trim().toUpperCase() &&
+    Number(indice.km[n]) === Number(datos.KM_INICIAL);
+}
+
+/**
+ * El renglon de BD_AMAZON de un reporte. FILA_CONTROL guarda el numero, pero
+ * la hoja es compartida: si alguien inserta o borra renglones arriba, ese
+ * numero pasa a ser de otro reporte y lo de la tarde caeria encima de el.
+ * Por eso se confirma por contenido y, si no coincide, se busca de abajo
+ * hacia arriba. Regresa 0 si no aparece: mejor no escribir que escribir en el
+ * renglon de otro.
+ */
+function ubicarRenglon(indice, datos, filaGuardada) {
+  if (filaGuardada && esSuRenglon(indice, filaGuardada, datos)) return filaGuardada;
+  for (let fila = indice.driver.length; fila >= 2; fila--) {
+    if (esSuRenglon(indice, fila, datos)) return fila;
+  }
+  return 0;
+}
+
 function completarRenglon(control, filaControl, datos) {
   Object.keys(ESPEJO_FINAL).forEach(function (clave) {
     if (vacio(datos[clave])) return;
@@ -316,17 +357,39 @@ function vaciarAControl() {
       });
     }
 
+    const indice = porCompletar.length ? indiceControl(control) : null;
+    const reubicados = [];
+    const perdidos = [];
+    let completados = 0;
     porCompletar.forEach(function (p) {
-      completarRenglon(control, p.filaControl, p.datos);
-      escribirComentarios(control, p.filaControl, p.datos, comentarios.listas);
+      const fila = ubicarRenglon(indice, p.datos, p.filaControl);
+      if (!fila) {
+        perdidos.push(p.datos.DRIVER + ' (ruta ' + p.datos.ID_RUTA + ')');
+        return;
+      }
+      if (fila !== p.filaControl) {
+        respuestas.getRange(p.numeroFila, colFila).setValue(fila);
+        reubicados.push(p.datos.DRIVER);
+      }
+      completarRenglon(control, fila, p.datos);
+      escribirComentarios(control, fila, p.datos, comentarios.listas);
       respuestas.getRange(p.numeroFila, colFinal).setValue(marca).setNumberFormat(CONFIG.FORMATOS.marca);
+      completados++;
     });
 
     const partes = [];
     if (nuevos.length) partes.push(nuevos.length + ' reportes nuevos');
-    if (porCompletar.length) partes.push(porCompletar.length + ' completados con lo de la tarde');
+    if (completados) partes.push(completados + ' completados con lo de la tarde');
 
-    let mensaje = 'Listo: ' + partes.join(' y ') + '.';
+    let mensaje = partes.length ? 'Listo: ' + partes.join(' y ') + '.' : 'No se pasó ningún reporte.';
+    if (reubicados.length) {
+      mensaje += '\n\nSe movieron de renglón en ' + CONFIG.PESTANAS.control + ' y se completaron donde están ahora: ' +
+        reubicados.join(', ') + '.';
+    }
+    if (perdidos.length) {
+      mensaje += '\n\nNo se encontró su renglón en ' + CONFIG.PESTANAS.control + ', así que no se escribió lo de la tarde: ' +
+        perdidos.join(', ') + '. Revisa que el driver, el ID de ruta y el KM inicial sigan como los mandó el chofer, y vuelve a vaciar.';
+    }
     if (clasificados.sinCerrar) {
       mensaje += '\n\n' + clasificados.sinCerrar + ' rutas siguen en curso. Su renglón ya está en ' +
         CONFIG.PESTANAS.control + ', y se completa solo cuando el chofer mande su reporte final y vuelvas a vaciar.';
@@ -440,6 +503,196 @@ function cambiarHojaDeDatos() {
   ui.alert(
     'Hoja de datos cambiada',
     'Ahora el formulario y el vaciado trabajan sobre: ' + libro.getName(),
+    ui.ButtonSet.OK
+  );
+}
+
+/**
+ * Solo lee. Muestra, para cada reporte de hoy, si ya llego el final, en que
+ * renglon de BD_AMAZON quedo y que hay en ese renglon; y cuantos renglones de
+ * hoy con su ID de ruta existen en BD_AMAZON. Sirve para ver por que un
+ * reporte no se completo sin tener que abrir las dos hojas.
+ */
+function revisarReportesDeHoy() {
+  const ui = SpreadsheetApp.getUi();
+  const respuestas = libroDeRespuestas().getSheetByName(CONFIG.PESTANAS.respuestas);
+  const control = hoja().getSheetByName(CONFIG.PESTANAS.control);
+  if (!respuestas || !control || respuestas.getLastRow() < 2) {
+    ui.alert('Revisión', 'No hay reportes que revisar.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const hoy = fechaDeHoy();
+  const i = {};
+  COLUMNAS.forEach(function (c, n) { i[c] = n; });
+  const filas = respuestas.getRange(2, 1, respuestas.getLastRow() - 1, COLUMNAS.length).getValues()
+    .filter(function (f) { return comoFecha(f[i.FECHA]) === hoy; });
+
+  // Renglones de BD_AMAZON por ID de ruta, para ver si la ruta ya tenia uno
+  // creado por otro proceso.
+  const ultima = primeraFilaLibre(control) - 1;
+  const colT = columnaANumero(ESPEJO_INICIAL.ID_RUTA);
+  const colG = columnaANumero(ESPEJO_INICIAL.DRIVER);
+  const ids = ultima > 1 ? control.getRange(2, colT, ultima - 1, 1).getValues() : [];
+  const drivers = ultima > 1 ? control.getRange(2, colG, ultima - 1, 1).getValues() : [];
+  const renglonesPorRuta = {};
+  ids.forEach(function (v, n) {
+    const id = String(v[0] || '').trim().toUpperCase();
+    if (!id) return;
+    (renglonesPorRuta[id] = renglonesPorRuta[id] || []).push((n + 2) + (String(drivers[n][0] || '').trim() ? '' : ' sin driver'));
+  });
+
+  const lineas = filas.map(function (f) {
+    const filaControl = parseInt(f[i.FILA_CONTROL], 10);
+    let enControl = 'sin renglón';
+    if (filaControl) {
+      const r = control.getRange(filaControl, 1, 1, columnaANumero('AA')).getValues()[0];
+      enControl = 'renglón ' + filaControl + ': driver "' + r[colG - 1] + '", ID "' + r[colT - 1] +
+        '", HR UE "' + (r[columnaANumero('R') - 1] ? 'sí' : 'vacía') + '", KM final "' + r[columnaANumero('AA') - 1] + '"';
+    }
+    const id = String(f[i.ID_RUTA] || '').trim().toUpperCase();
+    return '• ' + f[i.DRIVER] + ' (ruta ' + id + ')\n' +
+      '   final enviado: ' + (String(f[i.MARCA_TIEMPO_FINAL] || '').trim() ? 'sí' : 'no') +
+      ' · final vaciado: ' + (String(f[i.ESPEJADO_FINAL] || '').trim() ? 'sí' : 'no') + '\n' +
+      '   ' + enControl + '\n' +
+      '   renglones con ese ID en ' + CONFIG.PESTANAS.control + ': ' + ((renglonesPorRuta[id] || []).join(', ') || 'ninguno');
+  });
+
+  ui.alert(
+    'Reportes de hoy (' + filas.length + ')',
+    'Hoja de datos: ' + hoja().getName() + '\n\n' + (lineas.join('\n\n') || 'No hay reportes de hoy.'),
+    ui.ButtonSet.OK
+  );
+}
+
+/**
+ * Arregla los reportes de hoy cuyo FILA_CONTROL quedo apuntando a otro
+ * renglon, porque alguien inserto o borro renglones en BD_AMAZON despues del
+ * vaciado de la manana y lo de la tarde se escribio en el renglon equivocado.
+ *
+ * En el renglon real de cada reporte borra lo de la tarde que no era suyo y
+ * escribe lo suyo, si ya mando el final. Los renglones de otros reportes que
+ * recibieron datos ajenos no se pueden reconstruir desde aqui (sus valores
+ * se perdieron): se listan para restaurarlos con el historial de versiones.
+ * Antes de escribir muestra el plan y pide confirmacion.
+ */
+function repararRenglonesDeHoy() {
+  const ui = SpreadsheetApp.getUi();
+  const respuestas = libroDeRespuestas().getSheetByName(CONFIG.PESTANAS.respuestas);
+  const control = hoja().getSheetByName(CONFIG.PESTANAS.control);
+  if (!respuestas || !control || respuestas.getLastRow() < 2) {
+    ui.alert('Reparar', 'No hay reportes que revisar.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const hoy = fechaDeHoy();
+  const i = {};
+  COLUMNAS.forEach(function (c, n) { i[c] = n; });
+  const valores = respuestas.getRange(2, 1, respuestas.getLastRow() - 1, COLUMNAS.length).getValues();
+  const indice = indiceControl(control);
+
+  const reportes = [];
+  valores.forEach(function (f, n) {
+    const filaControl = parseInt(f[i.FILA_CONTROL], 10);
+    if (!filaControl || comoFecha(f[i.FECHA]) !== hoy) return;
+    const datos = {};
+    COLUMNAS.forEach(function (c, k) { datos[c] = f[k]; });
+    reportes.push({
+      numeroFila: n + 2,
+      datos: datos,
+      anotada: filaControl,
+      real: ubicarRenglon(indice, datos, filaControl),
+      tieneFinal: !!String(f[i.MARCA_TIEMPO_FINAL] || '').trim(),
+      // Solo si ya se vacio lo de la tarde se escribio algo en el renglon anotado.
+      escribioFinal: !!String(f[i.ESPEJADO_FINAL] || '').trim(),
+    });
+  });
+
+  const malUbicados = reportes.filter(function (r) { return r.real !== r.anotada; });
+  // Renglones donde se escribio lo de la tarde de un reporte que no era.
+  const danadas = malUbicados.filter(function (r) { return r.escribioFinal; }).map(function (r) { return r.anotada; });
+  if (!malUbicados.length) {
+    ui.alert('Reparar', 'Los ' + reportes.length + ' reportes de hoy están en su renglón. No hay nada que reparar.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const sinRenglon = malUbicados.filter(function (r) { return !r.real; });
+  // Tambien un reporte bien ubicado se reescribe si otro le escribio encima.
+  const aReparar = reportes.filter(function (r) {
+    return r.real && (r.real !== r.anotada || danadas.indexOf(r.real) !== -1);
+  });
+  const propias = reportes.map(function (r) { return r.real; }).filter(Boolean);
+  const ajenas = danadas
+    .filter(function (fila) { return propias.indexOf(fila) === -1; })
+    .sort(function (a, b) { return a - b; });
+
+  let plan = aReparar.map(function (r) {
+    const donde = r.real === r.anotada ? 'renglón ' + r.real + ', recibió datos de otro' : 'renglón ' + r.anotada + ' → ' + r.real;
+    return '• ' + r.datos.DRIVER + ': ' + donde +
+      (r.tieneFinal ? ' (se escribe su reporte final)' : ' (sin final: se limpia lo que no es suyo)');
+  }).join('\n');
+  if (sinRenglon.length) {
+    plan += '\n\nNo se encontró su renglón, no se toca: ' +
+      sinRenglon.map(function (r) { return r.datos.DRIVER; }).join(', ') + '.';
+  }
+  if (ajenas.length) {
+    plan += '\n\nOJO: los renglones ' + ajenas.join(', ') + ' son de otros reportes y recibieron lo de la tarde ' +
+      'de alguien más. Eso no se puede deshacer desde aquí: restaura sus columnas R, V, W, X, Y, AA y COMENTARIOS ' +
+      'con Archivo → Historial de versiones.';
+  }
+
+  const seguro = ui.alert('Reparar renglones de hoy', plan + '\n\n¿Reparar?', ui.ButtonSet.YES_NO);
+  if (seguro !== ui.Button.YES) return;
+
+  const candado = LockService.getScriptLock();
+  if (!candado.tryLock(30000)) {
+    ui.alert('Intenta de nuevo', 'El sistema está ocupado. Vuelve a intentar en unos segundos.', ui.ButtonSet.OK);
+    return;
+  }
+
+  try {
+    const comentarios = columnasDeComentarios(control).listas;
+    const colFila = COLUMNAS.indexOf('FILA_CONTROL') + 1;
+    const motivosDeHoy = reportes
+      .map(function (r) { return normalizarTexto(r.datos.MOTIVO, NORMALIZAR.MOTIVO); })
+      .filter(Boolean);
+
+    // Primero se limpia todo y despues se escribe: el renglon real de un
+    // reporte es el anotado de otro, y en otro orden se volverian a pisar.
+    const tocadas = aReparar.map(function (r) { return r.real; }).concat(ajenas);
+    tocadas.forEach(function (fila) {
+      Object.keys(comentarios).forEach(function (clave) {
+        const celda = control.getRange(fila, comentarios[clave]);
+        const partes = String(celda.getValue() || '').split(' / ').filter(function (p) {
+          return p.trim() && motivosDeHoy.indexOf(p.trim()) === -1;
+        });
+        celda.setValue(partes.join(' / '));
+      });
+    });
+
+    aReparar.forEach(function (r) {
+      Object.keys(ESPEJO_FINAL).concat(Object.keys(ESPEJO_FORMULAS_FINAL).map(function (l) { return '=' + l; }))
+        .forEach(function (clave) {
+          const letra = clave.charAt(0) === '=' ? clave.slice(1) : ESPEJO_FINAL[clave];
+          control.getRange(r.real, columnaANumero(letra)).setValue('');
+        });
+    });
+
+    aReparar.forEach(function (r) {
+      if (r.tieneFinal) {
+        completarRenglon(control, r.real, r.datos);
+        escribirComentarios(control, r.real, r.datos, comentarios);
+      }
+      respuestas.getRange(r.numeroFila, colFila).setValue(r.real);
+    });
+  } finally {
+    candado.releaseLock();
+  }
+
+  ui.alert(
+    'Listo',
+    'Se repararon ' + aReparar.length + ' reportes.' +
+    (ajenas.length ? '\n\nFalta restaurar con el historial de versiones los renglones ' + ajenas.join(', ') + '.' : ''),
     ui.ButtonSet.OK
   );
 }
@@ -560,6 +813,8 @@ function crearMenuFormulario() {
   SpreadsheetApp.getUi()
     .createMenu('Formulario de ruta')
     .addItem('Vaciar reportes a ' + CONFIG.PESTANAS.control, 'vaciarReportesDesdeMenu')
+    .addItem('Revisar reportes de hoy', 'revisarReportesDeHoy')
+    .addItem('Reparar renglones de hoy…', 'repararRenglonesDeHoy')
     .addSeparator()
     .addItem('Cambiar hoja de datos…', 'cambiarHojaDeDatos')
     .addItem('Mover ' + CONFIG.PESTANAS.respuestas + ' a este archivo…', 'moverRespuestasAEsteArchivo')
