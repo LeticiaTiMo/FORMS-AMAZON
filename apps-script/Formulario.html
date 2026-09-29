@@ -143,7 +143,56 @@
     background-position: right 16px center;
     padding-right: 42px;
   }
-  input[type="time"] { font-size: 1.3rem; text-align: center; }
+  /* Rueda de hora: hora, minutos y a.m./p.m., como el selector del celular.
+     La franja del centro es la hora elegida. */
+  .rueda {
+    --alto: 40px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    height: calc(var(--alto) * 5);
+    background: #fff;
+    border: 2px solid var(--borde);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .rueda::before {
+    content: '';
+    position: absolute;
+    left: 10px; right: 10px;
+    top: calc(var(--alto) * 2);
+    height: var(--alto);
+    background: #eef0f3;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .rueda.elegida { border-color: var(--acento); }
+  .rueda.malo { border-color: var(--error); background: var(--error-fondo); }
+  .rueda-col {
+    position: relative;
+    width: 64px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .rueda-col::-webkit-scrollbar { display: none; }
+  .rueda-col div {
+    height: var(--alto);
+    line-height: var(--alto);
+    text-align: center;
+    scroll-snap-align: center;
+    font-size: 1.35rem;
+    color: #b8bcc2;
+    cursor: pointer;
+    user-select: none;
+  }
+  .rueda-col.periodo div { font-size: 1.05rem; }
+  .rueda-col div.sel { color: var(--texto); font-weight: 700; }
+  .rueda-col div.relleno { scroll-snap-align: none; cursor: default; }
+  .rueda-sep { align-self: center; font-size: 1.35rem; font-weight: 700; position: relative; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: var(--acento); }
   input.malo, select.malo { border-color: var(--error); background: var(--error-fondo); }
 
@@ -358,22 +407,26 @@
       <h2>Horas de la mañana</h2>
       <div class="campo">
         <label for="HR_LLEGADA_BO">Llegada a BO</label>
-        <input type="time" id="HR_LLEGADA_BO" name="HR_LLEGADA_BO">
+        <input type="hidden" id="HR_LLEGADA_BO" name="HR_LLEGADA_BO">
+        <div class="rueda" data-para="HR_LLEGADA_BO"></div>
         <div class="malo-texto oculto"></div>
       </div>
       <div class="campo">
         <label for="HR_ENTRADA_BO">Entrada a BO</label>
-        <input type="time" id="HR_ENTRADA_BO" name="HR_ENTRADA_BO">
+        <input type="hidden" id="HR_ENTRADA_BO" name="HR_ENTRADA_BO">
+        <div class="rueda" data-para="HR_ENTRADA_BO"></div>
         <div class="malo-texto oculto"></div>
       </div>
       <div class="campo">
         <label for="HR_SALIDA_BOD">Salida de BOD</label>
-        <input type="time" id="HR_SALIDA_BOD" name="HR_SALIDA_BOD">
+        <input type="hidden" id="HR_SALIDA_BOD" name="HR_SALIDA_BOD">
+        <div class="rueda" data-para="HR_SALIDA_BOD"></div>
         <div class="malo-texto oculto"></div>
       </div>
       <div class="campo">
         <label for="HR_PE">Primera entrega</label>
-        <input type="time" id="HR_PE" name="HR_PE">
+        <input type="hidden" id="HR_PE" name="HR_PE">
+        <div class="rueda" data-para="HR_PE"></div>
         <div class="malo-texto oculto"></div>
       </div>
       <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
@@ -424,7 +477,8 @@
       </div>
       <div class="campo">
         <label for="HR_UE">Hora de última entrega</label>
-        <input type="time" id="HR_UE" name="HR_UE">
+        <input type="hidden" id="HR_UE" name="HR_UE">
+        <div class="rueda" data-para="HR_UE"></div>
         <div class="malo-texto oculto"></div>
       </div>
       <button type="button" class="boton" onclick="validarPaso()">Siguiente</button>
@@ -696,8 +750,9 @@
     if (!el) return;
     // Si el campo esta escondido (la placa elegida de la lista), se marca lo
     // que el chofer si ve.
-    var visible = el.classList.contains('oculto')
-      ? el.parentNode.querySelector('select:not(.oculto), input:not(.oculto)') || el
+    var escondido = el.classList.contains('oculto') || el.type === 'hidden';
+    var visible = escondido
+      ? el.parentNode.querySelector('.rueda, select:not(.oculto), input:not(.oculto):not([type="hidden"])') || el
       : el;
     visible.classList.add('malo');
     var m = el.parentNode.querySelector('.malo-texto');
@@ -815,6 +870,114 @@
       caja.appendChild(b);
     });
   }
+
+  // --- Rueda de hora ---
+
+  var ALTO_RUEDA = 40;
+
+  function dosDigitos(n) { return n < 10 ? '0' + n : String(n); }
+
+  /** "21:43" -> "9:43 p.m.", como la muestra la rueda. */
+  function horaLegible(hhmm) {
+    var m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return hhmm || '';
+    var h = parseInt(m[1], 10);
+    return ((h % 12) || 12) + ':' + m[2] + (h < 12 ? ' a.m.' : ' p.m.');
+  }
+
+  /**
+   * Cada rueda llena el campo oculto de su hora en formato de 24 horas, que
+   * es lo que ya validan la pantalla y Apps Script.
+   *
+   * La hora que muestra al abrir no cuenta como respuesta hasta que el chofer
+   * mueve o toca la rueda. Si contara, bastaria con dar Siguiente para
+   * guardar cuatro horas iguales sin que nadie lo note.
+   */
+  function crearRueda(caja) {
+    var columnas = [
+      { valores: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], texto: String },
+      { valores: Array.apply(null, Array(60)).map(function (x, i) { return i; }), texto: dosDigitos },
+      { valores: ['a.m.', 'p.m.'], texto: String, clase: 'periodo' }
+    ];
+
+    caja.columnas = columnas.map(function (col, n) {
+      var el = document.createElement('div');
+      el.className = 'rueda-col' + (col.clase ? ' ' + col.clase : '');
+      var html = '<div class="relleno"></div><div class="relleno"></div>';
+      col.valores.forEach(function (v, i) { html += '<div data-i="' + i + '">' + col.texto(v) + '</div>'; });
+      el.innerHTML = html + '<div class="relleno"></div><div class="relleno"></div>';
+      caja.appendChild(el);
+      if (n === 0) {
+        var sep = document.createElement('div');
+        sep.className = 'rueda-sep';
+        sep.textContent = ':';
+        caja.appendChild(sep);
+      }
+
+      var espera;
+      el.addEventListener('scroll', function () {
+        resaltar(el);
+        clearTimeout(espera);
+        espera = setTimeout(function () { if (caja.tocada) leerRueda(caja); }, 120);
+      });
+      ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) {
+        el.addEventListener(ev, function () { caja.tocada = true; }, { passive: true });
+      });
+      // Un toque sin mover tambien elige: la hora que se ve es la buena.
+      el.addEventListener('click', function (e) {
+        caja.tocada = true;
+        var i = e.target.getAttribute('data-i');
+        if (i !== null) el.scrollTo({ top: Number(i) * ALTO_RUEDA, behavior: 'smooth' });
+        leerRueda(caja);
+      });
+      return el;
+    });
+  }
+
+  function indiceDe(col) {
+    var total = col.querySelectorAll('[data-i]').length;
+    return Math.max(0, Math.min(total - 1, Math.round(col.scrollTop / ALTO_RUEDA)));
+  }
+
+  function resaltar(col) {
+    var i = indiceDe(col);
+    col.querySelectorAll('[data-i]').forEach(function (d, n) { d.classList.toggle('sel', n === i); });
+  }
+
+  function leerRueda(caja) {
+    var hora = indiceDe(caja.columnas[0]) + 1;
+    var minuto = indiceDe(caja.columnas[1]);
+    var tarde = indiceDe(caja.columnas[2]) === 1;
+    var id = caja.getAttribute('data-para');
+    var nuevo = dosDigitos((hora % 12) + (tarde ? 12 : 0)) + ':' + dosDigitos(minuto);
+    var cambio = $(id).value !== nuevo;
+    $(id).value = nuevo;
+    caja.classList.add('elegida');
+    limpiarMarcas([id]);
+
+    // La siguiente hora de la manana casi siempre es poco despues: se le
+    // acerca la rueda, sin darla por contestada.
+    var siguiente = ORDEN_HORAS[ORDEN_HORAS.indexOf(id) + 1];
+    var cajaSig = siguiente && document.querySelector('.rueda[data-para="' + siguiente + '"]');
+    if (cambio && cajaSig && !cajaSig.tocada) ponerRueda(cajaSig, nuevo);
+  }
+
+  function ponerRueda(caja, hhmm) {
+    var p = hhmm.split(':');
+    var h = parseInt(p[0], 10);
+    var indices = [((h % 12) || 12) - 1, parseInt(p[1], 10), h < 12 ? 0 : 1];
+    caja.columnas.forEach(function (col, n) {
+      col.scrollTop = indices[n] * ALTO_RUEDA;
+      resaltar(col);
+    });
+  }
+
+  var ahora = new Date();
+  var horaActual = dosDigitos(ahora.getHours()) + ':' + dosDigitos(ahora.getMinutes());
+  document.querySelectorAll('.rueda').forEach(function (caja) {
+    crearRueda(caja);
+    ponerRueda(caja, horaActual);
+  });
 
   // --- Placas ---
 
@@ -1041,7 +1204,7 @@
 
     if (paso === 'p-ue' && valor('HR_UE') && referencia.HR_PE &&
         aMinutos(valor('HR_UE')) < aMinutos(referencia.HR_PE)) {
-      marcar('HR_UE', 'No puede ser antes de la primera entrega (' + referencia.HR_PE + ').');
+      marcar('HR_UE', 'No puede ser antes de la primera entrega (' + horaLegible(referencia.HR_PE) + ').');
       fallas.push('La última entrega es antes que la primera.');
     }
 
@@ -1150,10 +1313,10 @@
       ['Placas', valor('PLACAS')],
       ['Zona de ruta', valor('ZONA_RUTA')],
       ['ID de ruta', valor('ID_RUTA')],
-      ['Llegada a BO', valor('HR_LLEGADA_BO')],
-      ['Entrada a BO', valor('HR_ENTRADA_BO')],
-      ['Salida de BOD', valor('HR_SALIDA_BOD')],
-      ['Primera entrega', valor('HR_PE')],
+      ['Llegada a BO', horaLegible(valor('HR_LLEGADA_BO'))],
+      ['Entrada a BO', horaLegible(valor('HR_ENTRADA_BO'))],
+      ['Salida de BOD', horaLegible(valor('HR_SALIDA_BOD'))],
+      ['Primera entrega', horaLegible(valor('HR_PE'))],
       ['SPR', valor('SPR')],
       ['CANT. PAR.', valor('CANT_PAR')],
       ['CANT. UBI.', valor('CANT_UBI')],
@@ -1163,7 +1326,7 @@
 
   function armarResumenFinal() {
     armarResumen('resumenFinal', [
-      ['Última entrega', valor('HR_UE')],
+      ['Última entrega', horaLegible(valor('HR_UE'))],
       ['Entregados', valor('ENTREGADOS')],
       ['Devoluciones', valor('DEVOLUCIONES')],
       ['No visitado', valor('NO_VISITADO')],
